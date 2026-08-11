@@ -30,7 +30,7 @@ npm.cmd run dev
 
 Open `http://127.0.0.1:4173/`.
 
-Alternatively, open `Iron Price.html` directly. It is a self-contained build with no external asset folder or server requirement. Rebuild it after code changes with:
+Alternatively, open `Iron Price.html` directly. The game uses the checked-in `assets/art` folder for narrative scenes, equipment and resource icons, faction emblems, and tactical overlays. Build the static deployment with:
 
 ```powershell
 npm.cmd run build:html
@@ -75,9 +75,18 @@ Battle controls:
 
 ```powershell
 npm.cmd test
-npm.cmd run sim
-npm.cmd run sim:campaign
 npm.cmd run build
 ```
 
-The automated suite checks campaign saves and migration, travel, events, markets, perks, recovery, endings, persistent consequences, every battlefield, objective rules, forecasts, repeatable attacks, and complete deterministic replays. The simulation commands run a 20-seed tactical batch and a 40-seed full-campaign terminal-state batch.
+The repository currently contains the compiled browser game rather than its original TypeScript source tree. `npm test` verifies the 52-file art manifest and every runtime integration hook. `npm run build` copies the playable build and optimized assets into `dist/`.
+
+## Art integration
+
+- `assets/art/scenes`: three company origins, four road events, and five campaign endings.
+- `assets/art/icons/weapons`: sword, spear, axe, and mace art across worn, serviceable, and masterwork tiers.
+- `assets/art/icons/resources`: armor, supplies, economy, progression, and injury icons.
+- `assets/art/emblems`: company, reputation, enemy-faction, and frontier-compact marks.
+- `assets/art/overlays`: deployment, movement, selection, activation, targeting, captain, hold, and escape markers used by the Canvas battle renderer.
+- `assets/art/manifest.json`: canonical asset register.
+
+The UI integration is handled by `assets/art/runtime.js` and `assets/art/art.css`. The tactical Canvas hooks are applied to the compiled build by `scripts/integrate-art.mjs`.

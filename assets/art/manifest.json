@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "basePath": "./assets/art/",
+  "counts": {
+    "scenes": 12,
+    "weapons": 12,
+    "resources": 12,
+    "emblems": 8,
+    "overlays": 8
+  },
+  "weaponTiers": ["worn", "serviceable", "masterwork"],
+  "weapons": ["sword", "spear", "axe", "mace"],
+  "resources": [
+    "shield",
+    "head-armor",
+    "body-armor",
+    "food",
+    "tools",
+    "medicine",
+    "crowns",
+    "wages",
+    "renown",
+    "threat",
+    "xp",
+    "injuries"
+  ],
+  "emblems": [
+    "company",
+    "free-towns",
+    "fenwardens",
+    "house-cael",
+    "thorn-reavers",
+    "mireborn",
+    "ironbound",
+    "frontier-compact"
+  ],
+  "overlays": [
+    "hold-position",
+    "escape-zone",
+    "enemy-captain",
+    "deployment",
+    "selected-unit",
+    "active-turn",
+    "movement-destination",
+    "attack-target"
+  ]
+}

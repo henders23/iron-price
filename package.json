@@ -5,13 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:html": "npm run build && node scripts/build-single-html.mjs",
+    "build": "node scripts/build-static.mjs",
+    "build:html": "npm run build",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "sim": "tsx src/sim.ts",
-    "sim:campaign": "tsx src/campaign/sim.ts"
+    "test": "node scripts/verify-art.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
