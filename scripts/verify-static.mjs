@@ -55,9 +55,28 @@ for (const relativePath of artFiles) {
   }
 }
 
+const fontFiles = [
+  "cinzel-latin-var.woff2",
+  "im-fell-english-latin.woff2",
+  "im-fell-english-italic-latin.woff2",
+  "jost-latin-var.woff2",
+];
+const screensCss = await readFile(join(root, "src/screens.css"), "utf8");
+for (const font of fontFiles) {
+  const file = join(root, "assets/fonts", font);
+  await access(file);
+  if ((await stat(file)).size === 0) {
+    throw new Error(`Empty font: ${font}`);
+  }
+  if (!screensCss.includes(font)) {
+    throw new Error(`screens.css does not reference ${font}.`);
+  }
+}
+
 const entryReferences = [
   "./src/game.css",
   "./src/art.css",
+  "./src/screens.css",
   "./src/music-player.css",
   "./src/game.js",
   "./src/art-runtime.js",
@@ -116,5 +135,5 @@ try {
 }
 
 console.log(
-  `Verified ${artFiles.length} art assets, the music track, and all runtime entry points.`,
+  `Verified ${artFiles.length} art assets, ${fontFiles.length} fonts, the music track, and all runtime entry points.`,
 );

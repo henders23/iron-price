@@ -49,6 +49,20 @@ Battle controls:
 - Six-fighter deployment selection and a complete battle-to-aftermath-to-company loop.
 - Chronicle and grave records for company events and fallen fighters.
 - Field guide, save migration, reduced-motion, high-contrast, and larger-text options.
+- A full-bleed title screen and an illustrated frontier map built to the
+  "Title & Frontier Map" design handoff: company banner, road network with
+  faction node seals, live resource and threat strip, and a location dossier
+  carrying the local contracts and the march order.
+
+## Screen presentation
+
+The title screen and the frontier map share one visual language, defined in
+`src/screens.css`: aged gold `#c39d4f` on `#0b0d0e`, square corners
+everywhere except the circular map nodes, Cinzel for headings and labels,
+IM Fell English for flavour text, and Jost for the wordmark. Accessibility
+options set from the title screen are stored globally under
+`iron-price-display-v1`, applied to the document root, and copied into each
+new company; a running campaign then keeps its own copy.
 
 ## Implemented tactical battle
 
@@ -81,7 +95,9 @@ The repository contains a formatted JavaScript recovery of the previous self-con
 - `index.html`: canonical game entry point.
 - `src/game.js`: campaign and tactical game runtime.
 - `src/game.css`: core game presentation.
+- `src/screens.css`: title screen and frontier map presentation.
 - `src/art-runtime.js` and `src/art.css`: generated-art UI integration.
+- `assets/fonts`: self-hosted Cinzel, IM Fell English and Jost subsets.
 - `src/music-player.js` and `src/music-player.css`: theme playback and persistent toggle.
 - `assets/art`: optimized narrative, equipment, faction, and tactical art.
 - `assets/audio/iron-price-theme.mp3`: looping theme music.

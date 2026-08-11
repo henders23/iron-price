@@ -1,7 +1,10 @@
 (function () {
   "use strict";
 
-  const root = "./assets/art/";
+  // Resolved against the document, not this stylesheet: these URLs are handed to
+  // custom properties that `art.css` consumes, and a relative url() inside a
+  // custom property resolves against the consuming stylesheet's own location.
+  const root = new URL("./assets/art/", document.baseURI).href;
   const url = (path) => `url("${root}${path}")`;
   const setArt = (element, property, path) => {
     if (!element || element.dataset.ipArtApplied === path) return;

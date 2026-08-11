@@ -2800,12 +2800,7 @@
         contracts: [],
         market: [],
         pendingEvent: null,
-        settings: {
-          reducedMotion: !1,
-          highContrast: !1,
-          largeText: !1,
-          tutorialSeen: !1,
-        },
+        settings: { ...ipReadDisplay(), tutorialSeen: !1 },
         history: ["The company took its name and its first unpaid road."],
         lastPlayed: new Date().toISOString(),
       };
@@ -3385,6 +3380,133 @@
   }
   function Ct(s) {
     (K.delete(s), _()?.removeItem(oe(s)), _()?.removeItem(xe(s)));
+  }
+  const ipDisplayKey = "iron-price-display-v1";
+  function ipDisplayDefaults() {
+    return { reducedMotion: !1, highContrast: !1, largeText: !1 };
+  }
+  function ipReadDisplay() {
+    try {
+      const s = JSON.parse(_()?.getItem(ipDisplayKey) ?? "null");
+      return s && typeof s == "object"
+        ? { ...ipDisplayDefaults(), ...s }
+        : ipDisplayDefaults();
+    } catch {
+      return ipDisplayDefaults();
+    }
+  }
+  function ipWriteDisplay(s) {
+    _()?.setItem(
+      ipDisplayKey,
+      JSON.stringify({
+        reducedMotion: !!s.reducedMotion,
+        highContrast: !!s.highContrast,
+        largeText: !!s.largeText,
+      }),
+    );
+  }
+  function ipApplyDisplay(s) {
+    const e = document.documentElement;
+    (e.classList.toggle("reduced-motion", !!s.reducedMotion),
+      e.classList.toggle("high-contrast", !!s.highContrast),
+      e.classList.toggle("large-text", !!s.largeText));
+  }
+  // Absolute so the same string works in `src` attributes and in custom
+  // properties read by `screens.css` (a relative url() inside a custom property
+  // resolves against the consuming stylesheet, not the document).
+  const ipArtPath = new URL("./assets/art/", document.baseURI).href;
+  const ipMapNodes = {
+    cinderfall: {
+      x: 11,
+      y: 72,
+      numeral: "I",
+      faction: "FREE TOWNS",
+      emblem: "free-towns",
+    },
+    fenmere: {
+      x: 23,
+      y: 48,
+      numeral: "II",
+      faction: "FENWARDENS",
+      emblem: "fenwardens",
+    },
+    "cael-watch": {
+      x: 36,
+      y: 66,
+      numeral: "III",
+      faction: "HOUSE CAEL",
+      emblem: "house-cael",
+    },
+    blackbriar: {
+      x: 50,
+      y: 40,
+      numeral: "IV",
+      faction: "NO CHARTER",
+      emblem: "mireborn",
+    },
+    "red-quarry": {
+      x: 63,
+      y: 62,
+      numeral: "V",
+      faction: "FREE TOWNS",
+      emblem: "free-towns",
+    },
+    "iron-pass": {
+      x: 76,
+      y: 38,
+      numeral: "VI",
+      faction: "IRONBOUND",
+      emblem: "ironbound",
+    },
+    "crowns-end": {
+      x: 88,
+      y: 56,
+      numeral: "VII",
+      faction: "FRONTIER COMPACT",
+      emblem: "frontier-compact",
+    },
+  };
+  const ipObjectiveArt = {
+    eliminate: "attack-target",
+    "break-captain": "enemy-captain",
+    hold: "hold-position",
+    escape: "escape-zone",
+    survive: "deployment",
+  };
+  const ipObjectiveLabel = {
+    eliminate: "Elimination",
+    "break-captain": "Captain",
+    hold: "Hold",
+    escape: "Escape",
+    survive: "Survival",
+  };
+  const ipTopbarResources = [
+    ["crowns", "Crowns"],
+    ["food", "Food"],
+    ["tools", "Tools"],
+    ["medicine", "Medicine"],
+    ["renown", "Renown"],
+  ];
+  const ipServiceChips = {
+    market: { label: "MARKET", view: "market" },
+    recruits: { label: "RECRUITS", view: "recruits" },
+    healer: { label: "HEALER", view: null },
+  };
+  function ipUnlockRequirement(s) {
+    return ["blackbriar", "red-quarry"].includes(s)
+      ? 2
+      : s === "iron-pass"
+        ? 4
+        : 6;
+  }
+  function ipEmberLayer() {
+    return `<div class="ip-embers" aria-hidden="true">${Array.from(
+      { length: 16 },
+      (s, e) => {
+        const t = e % 3 ? 3 : 2;
+        return `<span style="left:${(e * 61) % 100}%;width:${t}px;height:${t}px;animation-duration:${14 + (e % 7) * 3}s;animation-delay:${(-(e * 1.9)).toFixed(1)}s"></span>`;
+      },
+    ).join("")}</div>`;
   }
   const Mt = 1230131022;
   function Tt(s) {
@@ -4045,76 +4167,167 @@
     campaign = null;
     view = "company";
     selectedFighterId = null;
+    selectedLocationId = null;
     pendingOrigin = "road-wardens";
     message = "";
     constructor() {
       this.showTitle();
     }
-    showTitle() {
+    showTitle(e = null) {
       this.campaign = null;
-      const e = St();
+      const t = St(),
+        a = ipReadDisplay();
+      ipApplyDisplay(a);
+      const i =
+          t
+            .map((r, o) => (r ? { save: r, slot: o + 1 } : null))
+            .filter(Boolean)
+            .sort((r, o) =>
+              String(o.save.lastPlayed ?? "").localeCompare(
+                String(r.save.lastPlayed ?? ""),
+              ),
+            )[0] ?? null,
+        n = t.findIndex((r) => !r) + 1;
       ((document.querySelector("#app").innerHTML = `
-      <main class="campaign-title-screen">
-        <div class="title-mist"></div>
-        <section class="title-brand">
-          <div class="title-mark">IP</div>
-          <span class="eyebrow">A MERCENARY COMPANY RPG</span>
-          <h1>IRON PRICE</h1>
-          <p>Every road has a toll. Every victory names it.</p>
-        </section>
-        <section class="save-ledger">
-          <div class="ledger-heading"><span>CAMPAIGN LEDGER</span><small>Local saves · no account required</small></div>
-          <div class="save-slots">
-            ${e
-              .map((t, a) =>
-                t
-                  ? `
-              <article class="save-slot occupied">
-                <span class="slot-number">SLOT ${a + 1}</span>
-                <h2>${h(t.companyName)}</h2>
-                <p>${X[t.origin].name} · Day ${t.day} · ${t.status === "active" ? S[t.currentLocation].name : t.status.toUpperCase()}</p>
-                <div class="slot-facts"><span>${t.roster.filter((i) => i.alive).length} living</span><span>${t.crowns} crowns</span><span>${t.threat}% threat</span></div>
-                <div class="slot-actions"><button class="primary-button" data-continue-slot="${a + 1}">Continue</button><button class="text-button danger-text" data-delete-slot="${a + 1}">Delete</button></div>
-              </article>`
-                  : `
-              <article class="save-slot empty">
-                <span class="slot-number">SLOT ${a + 1}</span>
-                <h2>Empty ledger</h2>
-                <p>No oath. No debts. No graves.</p>
-                <button class="secondary-button" data-new-slot="${a + 1}">Found a company</button>
-              </article>`,
-              )
-              .join("")}
+      <main class="ip-title" data-screen-label="Title">
+        <img class="ip-title-art" src="${ipArtPath}scenes/ending-victory.webp" alt="">
+        <div class="ip-title-veil"></div>
+        <div class="ip-title-legibility"></div>
+        <div class="ip-title-vignette"></div>
+        <div class="ip-title-column">
+          <img class="ip-title-emblem" src="${ipArtPath}emblems/company.webp" alt="Company banner">
+          <h1 class="ip-wordmark">IRON PRICE</h1>
+          <div class="ip-rule-row"><span class="ip-rule"></span><span class="ip-rule-label">THE ASH ROAD</span></div>
+          <p class="ip-tagline">Lead your mercenary company across a hard frontier</p>
+          <div class="ip-menu">
+            <button class="ip-menu-button primary" data-title-action="continue" ${i ? "" : "disabled"}>
+              <span class="ip-menu-label">◆&nbsp; CONTINUE</span>
+              <span class="ip-menu-sub">${
+                i
+                  ? `${h(i.save.companyName)} — Day ${i.save.day} — ${h(this.ipSaveState(i.save))}`
+                  : "No company has signed the ledger yet"
+              }</span>
+            </button>
+            <button class="ip-menu-button" data-title-action="new">NEW COMPANY</button>
+            <button class="ip-menu-button" data-title-action="ledger">CHRONICLE</button>
+            <button class="ip-menu-button" data-title-action="settings">SETTINGS</button>
           </div>
-          <button id="quick-battle" class="title-quiet-button">Play standalone battle</button>
-        </section>
-        <footer class="title-footer">Campaign Run v1 · deterministic local saves · no account required</footer>
+        </div>
+        <div class="ip-title-footer">
+          <span class="ip-build">CAMPAIGN RUN V1</span>
+          <span class="ip-quote">“A company is only worth the names cut in its stone.”</span>
+        </div>
+        ${ipEmberLayer()}
+        ${e === "ledger" ? this.ipLedgerPanel(t) : e === "settings" ? this.ipSettingsPanel(a) : ""}
       </main>`),
-        document.querySelectorAll("[data-continue-slot]").forEach((t) =>
-          t.addEventListener("click", () => {
-            const a = Number(t.dataset.continueSlot),
-              i = Ae(a);
-            i && this.openCampaign(i);
+        document.querySelectorAll("[data-title-action]").forEach((r) =>
+          r.addEventListener("click", () => {
+            const o = r.dataset.titleAction;
+            o === "continue"
+              ? i && this.openCampaign(Ae(i.slot) ?? i.save)
+              : o === "new"
+                ? n
+                  ? this.showNewCampaign(n)
+                  : this.showTitle("ledger")
+                : this.showTitle(o);
+          }),
+        ),
+        document
+          .querySelector("[data-title-close]")
+          ?.addEventListener("click", () => this.showTitle()),
+        document.querySelectorAll("[data-continue-slot]").forEach((r) =>
+          r.addEventListener("click", () => {
+            const o = Ae(Number(r.dataset.continueSlot));
+            o && this.openCampaign(o);
           }),
         ),
         document
           .querySelectorAll("[data-new-slot]")
-          .forEach((t) =>
-            t.addEventListener("click", () =>
-              this.showNewCampaign(Number(t.dataset.newSlot)),
+          .forEach((r) =>
+            r.addEventListener("click", () =>
+              this.showNewCampaign(Number(r.dataset.newSlot)),
             ),
           ),
-        document.querySelectorAll("[data-delete-slot]").forEach((t) =>
-          t.addEventListener("click", () => {
-            const a = Number(t.dataset.deleteSlot);
+        document.querySelectorAll("[data-delete-slot]").forEach((r) =>
+          r.addEventListener("click", () => {
+            const o = Number(r.dataset.deleteSlot);
             window.confirm(
-              `Delete campaign slot ${a}? This cannot be undone.`,
-            ) && (Ct(a), this.showTitle());
+              `Delete campaign slot ${o}? This cannot be undone.`,
+            ) && (Ct(o), this.showTitle("ledger"));
+          }),
+        ),
+        document.querySelectorAll("[data-display-setting]").forEach((r) =>
+          r.addEventListener("click", () => {
+            const o = r.dataset.displaySetting;
+            ((a[o] = !a[o]), ipWriteDisplay(a), this.showTitle("settings"));
           }),
         ),
         document
           .querySelector("#quick-battle")
           ?.addEventListener("click", () => new fe({ seed: Mt })));
+    }
+    ipSaveState(e) {
+      return e.status === "active"
+        ? S[e.currentLocation].name
+        : e.status.toUpperCase();
+    }
+    ipLedgerPanel(e) {
+      return `<aside class="ip-title-panel">
+        <div class="ip-panel-head"><span class="ip-panel-eyebrow">CAMPAIGN LEDGER</span><button class="ip-panel-close" data-title-close>CLOSE</button></div>
+        <p class="ip-panel-note">Three local slots. Saving is automatic and no account is required.</p>
+        <div class="ip-slot-list">
+          ${e
+            .map((t, a) =>
+              t
+                ? `<article class="ip-slot">
+            <header><span class="ip-slot-number">SLOT ${a + 1}</span><span class="ip-slot-state">${h(this.ipSaveState(t).toUpperCase())}</span></header>
+            <h3>${h(t.companyName)}</h3>
+            <p>${h(X[t.origin].name)} · Day ${t.day} of 50</p>
+            <div class="ip-slot-facts"><span>${t.roster.filter((i) => i.alive).length} LIVING</span><span>${t.crowns} CROWNS</span><span>${t.threat}% THREAT</span></div>
+            <div class="ip-slot-actions"><button class="ip-panel-button" data-continue-slot="${a + 1}">CONTINUE</button><button class="ip-panel-button danger" data-delete-slot="${a + 1}">DELETE</button></div>
+          </article>`
+                : `<article class="ip-slot">
+            <header><span class="ip-slot-number">SLOT ${a + 1}</span><span class="ip-slot-state">EMPTY</span></header>
+            <h3>Empty ledger</h3>
+            <p>No oath. No debts. No graves.</p>
+            <div class="ip-slot-actions"><button class="ip-panel-button quiet" data-new-slot="${a + 1}">FOUND A COMPANY</button></div>
+          </article>`,
+            )
+            .join("")}
+        </div>
+        <div class="ip-panel-foot"><button id="quick-battle" class="ip-panel-button quiet">PLAY A STANDALONE BATTLE</button></div>
+      </aside>`;
+    }
+    ipSettingsPanel(e) {
+      const t = [
+        [
+          "reducedMotion",
+          "Reduced motion",
+          "Stops the drifting art, embers and most battlefield animation.",
+        ],
+        [
+          "highContrast",
+          "High contrast",
+          "Strengthens text, borders and battlefield highlights.",
+        ],
+        [
+          "largeText",
+          "Larger interface text",
+          "Increases campaign and battle text sizing.",
+        ],
+      ];
+      return `<aside class="ip-title-panel">
+        <div class="ip-panel-head"><span class="ip-panel-eyebrow">OPTIONS &amp; ACCESSIBILITY</span><button class="ip-panel-close" data-title-close>CLOSE</button></div>
+        <p class="ip-panel-note">These apply everywhere and are copied into each new company. A running campaign keeps its own copy, changed from the campaign settings screen.</p>
+        <div class="ip-option-list">
+          ${t
+            .map(
+              ([a, i, n]) =>
+                `<button class="ip-option ${e[a] ? "enabled" : ""}" data-display-setting="${a}"><span><b>${i}</b><small>${n}</small></span><i>${e[a] ? "ON" : "OFF"}</i></button>`,
+            )
+            .join("")}
+        </div>
+      </aside>`;
     }
     showNewCampaign(e) {
       ((this.pendingOrigin = "road-wardens"),
@@ -4169,6 +4382,8 @@
       }
       ((this.view = t),
         (this.message = a),
+        S[this.selectedLocationId] ||
+          (this.selectedLocationId = e.currentLocation),
         (!this.selectedFighterId ||
           !e.roster.some((i) => i.id === this.selectedFighterId)) &&
           (this.selectedFighterId =
@@ -4201,20 +4416,34 @@
           0,
         ),
         i = t.filter((n) => n.hp < n.hpMax || n.injuries.length > 0).length;
+      const r = Math.max(0, Math.min(10, Math.round(e.threat / 10)));
       ((document.querySelector("#app").innerHTML = `
-      <main class="campaign-shell">
-        <header class="campaign-topbar">
-          <div class="campaign-brand"><div class="brand-rivet"></div><div><h1>IRON PRICE</h1><span>${h(e.companyName)}</span></div></div>
-          <div class="campaign-day"><span>${S[e.currentLocation].name.toUpperCase()}</span><strong>Day ${e.day}</strong><small>${X[e.origin].name}</small></div>
-          <div class="supply-strip">
-            <div title="Crowns"><i>¤</i><span>CROWNS</span><b>${e.crowns}</b></div>
-            <div title="Food"><i>▰</i><span>FOOD</span><b>${e.food}</b></div>
-            <div title="Tools"><i>⌁</i><span>TOOLS</span><b>${e.tools}</b></div>
-            <div title="Medicine"><i>✚</i><span>MEDICINE</span><b>${e.medicine}</b></div>
-            <div title="Renown"><i>◆</i><span>RENOWN</span><b>${e.renown}</b></div>
-            <div title="Frontier threat" class="threat-resource"><i>!</i><span>THREAT</span><b>${e.threat}%</b></div>
+      <main class="campaign-shell ip-shell">
+        <header class="campaign-topbar ip-topbar">
+          <button class="ip-brand" id="ip-brand" title="Save and return to the campaign ledger">
+            <img src="${ipArtPath}emblems/company.webp" alt="">
+            <span><span class="ip-brand-name">IRON PRICE</span><span class="ip-brand-company">${h(e.companyName)}</span></span>
+          </button>
+          <span class="ip-topbar-rule"></span>
+          <div class="ip-resources">
+            ${ipTopbarResources
+              .map(
+                ([o, l]) =>
+                  `<div class="ip-resource" title="${l}" style="--ip-icon:url('${ipArtPath}icons/resources/${o}.webp')"><i role="img" aria-label="${l}"></i><b>${e[o]}</b></div>`,
+              )
+              .join("")}
           </div>
-          <div class="campaign-top-actions"><button id="settings-button" class="campaign-menu-button">Settings</button><button id="save-and-title" class="campaign-menu-button">Save &amp; ledger</button></div>
+          <div class="ip-topbar-right">
+            <div class="ip-threat" title="Ironbound threat ${e.threat}%">
+              <img src="${ipArtPath}icons/resources/threat.webp" alt="">
+              <span>THREAT</span>
+              <div class="ip-ticks">${Array.from({ length: 10 }, (o, l) => `<i class="${l < r ? "filled" : ""}"></i>`).join("")}</div>
+            </div>
+            <span class="ip-topbar-rule"></span>
+            <span class="ip-day">DAY ${e.day} / 50</span>
+            <span class="ip-topbar-rule"></span>
+            <div class="campaign-top-actions"><button id="settings-button" class="campaign-menu-button">SETTINGS</button><button id="save-and-title" class="campaign-menu-button">LEDGER</button></div>
+          </div>
         </header>
         <div class="campaign-body">
           <aside class="campaign-sidebar">
@@ -4233,7 +4462,7 @@
               <div class="readiness-summary"><span>${i}</span><small>wounded</small><span>${a}</span><small>armor damage</small></div>
             </section>
           </aside>
-          <section class="campaign-content">
+          <section class="campaign-content ${this.view === "map" ? "ip-map-content" : ""}">
             ${this.message ? `<div class="campaign-message">${h(this.message)}</div>` : ""}
             ${this.renderCurrentView()}
           </section>
@@ -4254,37 +4483,145 @@
                 ? this.renderChronicle()
                 : this.renderCompanyView();
     }
+    ipLocationStatus(e) {
+      const t = this.campaign;
+      return e === t.currentLocation
+        ? "current"
+        : Te(t, e)
+          ? S[t.currentLocation].neighbors.includes(e)
+            ? "open"
+            : "secured"
+          : "gated";
+    }
+    ipStatusTag(e, t) {
+      return e === "current"
+        ? "YOU ARE HERE"
+        : e === "open"
+          ? "OPEN ROAD"
+          : e === "secured"
+            ? "KNOWN ROAD"
+            : t === "crowns-end"
+              ? "THE FINAL TOLL"
+              : "ROAD GATED";
+    }
     renderFrontierMap() {
       const e = this.campaign,
         t = S[e.currentLocation],
-        a = Object.values(S).flatMap((o) =>
-          o.neighbors
-            .filter((l) => o.id < l)
-            .map((l) => ({ from: o, to: S[l] })),
+        a = S[this.selectedLocationId] ?? t,
+        i = this.ipLocationStatus(a.id),
+        n = ipMapNodes[a.id],
+        r = e.roster.filter((c) => c.alive).length * 2,
+        o = j(e) * 2,
+        l = Object.values(S).flatMap((c) =>
+          c.neighbors
+            .filter((m) => c.id < m)
+            .map(
+              (m) =>
+                `<line class="road-glow" x1="${ipMapNodes[c.id].x}" y1="${ipMapNodes[c.id].y}" x2="${ipMapNodes[m].x}" y2="${ipMapNodes[m].y}"></line><line class="road ${Te(e, c.id) && Te(e, m) ? "" : "held"}" x1="${ipMapNodes[c.id].x}" y1="${ipMapNodes[c.id].y}" x2="${ipMapNodes[m].x}" y2="${ipMapNodes[m].y}"></line>`,
+            ),
         ),
-        n = e.roster.filter((o) => o.alive).length * 2,
-        r = j(e) * 2;
-      return `<div class="content-heading"><div><span class="eyebrow">THE FRONTIER</span><h2>${h(t.name)} · Day ${e.day}</h2></div><div class="heading-stat threat-heading"><span>IRONBOUND THREAT</span><b>${e.threat}%</b></div></div>
-      <div class="frontier-layout">
-        <section class="frontier-map" aria-label="Frontier travel map">
-          <svg class="frontier-roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${a.map(({ from: o, to: l }) => `<line x1="${o.x}" y1="${o.y}" x2="${l.x}" y2="${l.y}"></line>`).join("")}</svg>
-          ${Object.values(S)
-            .map((o) => {
-              const l = Te(e, o.id),
-                d = t.neighbors.includes(o.id),
-                c = e.discoveredLocations.includes(o.id) || l,
-                m = d && l && o.id !== t.id;
-              return `<button class="map-location ${o.id === t.id ? "current" : ""} ${l ? "unlocked" : "locked"}" style="left:${o.x}%;top:${o.y}%" ${m ? `data-travel="${o.id}"` : ""} ${c ? "" : "disabled"}><i>${o.id === t.id ? "◆" : l ? "◇" : "×"}</i><b>${c ? h(o.name) : "Unknown road"}</b><span>${o.id === t.id ? "Company camp" : m ? "2 days" : l ? "Known road" : "Road held"}</span></button>`;
-            })
-            .join("")}
-          <div class="map-compass"><i>N</i><span></span></div>
-        </section>
-        <aside class="location-dossier">
-          <span class="eyebrow">CURRENT LOCATION</span><h2>${h(t.name)}</h2><p class="location-subtitle">${h(t.subtitle)}</p><p>${h(t.description)}</p>
-          <div class="location-services"><span>SERVICES</span>${t.services.map((o) => `<b>${o}</b>`).join("")}</div>
-          <div class="campaign-progress"><div><span>CONTRACTS</span><b>${e.completedContracts}/7</b></div><div><span>VICTORIES</span><b>${e.victories}</b></div><div><span>DEFEATS</span><b>${e.defeats}</b></div></div>
-          <div class="travel-cost"><span>TRAVEL COST</span><b>${r} crowns · ${n} food · 2 days</b><small>Threat rises by 4 while the company is on the road.</small></div>
-          <div class="reputation-list"><span>REPUTATION</span><div><b>Free Towns</b><em>${e.reputations["free-towns"]}</em></div><div><b>Fenwardens</b><em>${e.reputations.fenwardens}</em></div><div><b>House Cael</b><em>${e.reputations["house-cael"]}</em></div></div>
+        d = Object.values(S)
+          .map((c) => {
+            const m = this.ipLocationStatus(c.id),
+              u = ipMapNodes[c.id];
+            return `<button class="ip-node ${m} ${c.id === a.id ? "selected" : ""}" style="left:${u.x}%;top:${u.y}%" data-location="${c.id}" aria-pressed="${c.id === a.id}">
+              <span class="ip-node-disc">
+                ${m === "current" ? '<span class="ip-node-pulse"></span>' : ""}
+                <span class="ip-node-ring"></span>
+                <span class="ip-node-emblem" style="--ip-emblem:url('${ipArtPath}emblems/${u.emblem}.webp')"></span>
+              </span>
+              <span class="ip-node-name">${h(c.name.toUpperCase())}</span>
+              <span class="ip-node-tag">${this.ipStatusTag(m, c.id)}</span>
+            </button>`;
+          })
+          .join("");
+      let p = "",
+        f = "",
+        y = !1;
+      if (i === "current")
+        ((p = "THE COMPANY IS HERE"),
+          (f = "Rest, resupply, or take a contract."));
+      else if (i === "gated") {
+        const c = ipUnlockRequirement(a.id);
+        ((p =
+          a.id === "crowns-end"
+            ? "SECURE SIX CONTRACTS FIRST"
+            : `ROAD GATED — ${c} CONTRACTS REQUIRED`),
+          (f =
+            a.id === "crowns-end"
+              ? "No road reaches the fortress while the frontier still owes six contracts."
+              : `The frontier threat holds that road until ${c} contracts are settled.`));
+      } else
+        i === "secured"
+          ? ((p = "NO DIRECT ROAD"),
+            (f = `No road runs straight there from ${h(t.name)}.`))
+          : ((y = e.food >= r && e.crowns >= o),
+            (p = "MARCH — 2 DAYS"),
+            (f = y
+              ? `${o} crowns · ${r} food · threat rises by 4`
+              : e.food < r
+                ? `The march needs ${r} food; the company carries ${e.food}.`
+                : `The march needs ${o} crowns in wages; the company holds ${e.crowns}.`));
+      const b = a.services
+        .map((c) => ipServiceChips[c])
+        .filter(Boolean)
+        .map((c) =>
+          c.view && a.id === t.id
+            ? `<button class="ip-service" data-service-view="${c.view}">${c.label}</button>`
+            : `<span class="ip-service">${c.label}</span>`,
+        );
+      return `<div class="ip-map" data-screen-label="Frontier Map">
+        <div class="ip-map-stage" aria-label="Frontier travel map">
+          <img class="ip-map-art" src="${ipArtPath}scenes/event-black-storm.webp" alt="">
+          <div class="ip-map-veil"></div>
+          <div class="ip-map-vignette"></div>
+          <div class="ip-map-heading"><b>THE FRONTIER</b><span>Choose where the company marches next.</span></div>
+          <svg class="ip-roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${l.join("")}</svg>
+          ${d}
+        </div>
+        <aside class="ip-dossier">
+          <div class="ip-dossier-head">
+            <div class="ip-dossier-eyebrow">LOCATION ${n.numeral} — ${n.faction}</div>
+            <h2>${h(a.name.toUpperCase())}</h2>
+            <p class="ip-dossier-desc">${h(a.description)}</p>
+            <div class="ip-services">${b.length ? b.join("") : '<span class="ip-service">NO SERVICES</span>'}</div>
+          </div>
+          <div class="ip-dossier-divider"></div>
+          <div class="ip-dossier-body">
+            <div class="ip-dossier-label">CONTRACTS OFFERED</div>
+            ${
+              a.id === t.id
+                ? e.contracts.length
+                  ? `<div class="ip-contract-list">${e.contracts
+                      .map(
+                        (
+                          c,
+                        ) => `<button class="ip-contract" data-accept-contract="${c.id}">
+                    <span class="ip-contract-seal" style="--ip-emblem:url('${ipArtPath}emblems/${c.enemyFaction}.webp')"></span>
+                    <span class="ip-contract-text">
+                      <span class="ip-contract-title">${h(c.title)}</span>
+                      <span class="ip-contract-meta">
+                        <i style="background-image:url('${ipArtPath}overlays/${ipObjectiveArt[c.battleObjective]}.webp')"></i>
+                        <span>${ipObjectiveLabel[c.battleObjective]}</span>
+                        <em>·</em>
+                        <img src="${ipArtPath}icons/resources/crowns.webp" alt="crowns">
+                        <span>${c.reward}</span>
+                        <em>·</em>
+                        <img src="${ipArtPath}icons/resources/renown.webp" alt="renown">
+                        <span>+${c.danger * 3}</span>
+                      </span>
+                    </span>
+                  </button>`,
+                      )
+                      .join("")}</div>`
+                  : '<p class="ip-dossier-empty">No work is posted here today. Rest a day or settle a contract elsewhere.</p>'
+                : '<p class="ip-dossier-empty">Contracts are only posted to a company that stands in the town.</p>'
+            }
+          </div>
+          <div class="ip-dossier-foot">
+            <button class="ip-march" ${y ? `data-travel="${a.id}"` : "disabled"}>${p}</button>
+            <div class="ip-march-note">${f}</div>
+          </div>
         </aside>
       </div>`;
     }
@@ -4427,14 +4764,27 @@
     }
     bindCampaignControls() {
       const e = this.campaign;
-      (document
-        .querySelector("#save-and-title")
-        ?.addEventListener("click", () => {
+      (document.querySelectorAll("#save-and-title, #ip-brand").forEach((t) =>
+        t.addEventListener("click", () => {
           (I(e), this.showTitle());
         }),
+      ),
         document
           .querySelector("#settings-button")
           ?.addEventListener("click", () => this.showSettings()),
+        document.querySelectorAll("[data-location]").forEach((t) =>
+          t.addEventListener("click", () => {
+            ((this.selectedLocationId = t.dataset.location),
+              this.openCampaign(e, "map"));
+          }),
+        ),
+        document
+          .querySelectorAll("[data-service-view]")
+          .forEach((t) =>
+            t.addEventListener("click", () =>
+              this.openCampaign(e, t.dataset.serviceView),
+            ),
+          ),
         document
           .querySelectorAll("[data-view]")
           .forEach((t) =>
@@ -4559,6 +4909,7 @@
             const i = a.dataset.setting;
             ((e.settings[i] = !e.settings[i]),
               this.applyCampaignSettings(e),
+              ipWriteDisplay(e.settings),
               I(e),
               this.showSettings());
           }),
