@@ -7,8 +7,8 @@
     "dev": "vite",
     "build": "node scripts/build-static.mjs",
     "preview": "vite preview",
-    "check": "node --check src/game.js && node --check src/art-runtime.js && node --check src/music-player.js",
-    "test": "npm run check && node scripts/verify-static.mjs && node scripts/test-music-player.mjs && node scripts/smoke-server.mjs",
+    "check": "node scripts/check-syntax.mjs",
+    "test": "npm run check && node scripts/verify-static.mjs && node scripts/test-rules.mjs && node scripts/test-music-player.mjs && node scripts/smoke-server.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

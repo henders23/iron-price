@@ -24,7 +24,11 @@ npm run dev
 
 Open `http://127.0.0.1:4173/`.
 
-You can also open `index.html` directly. `Iron Price.html` remains as a small compatibility launcher for older links.
+The source tree is a set of ES modules, so the development server is required
+while working on it. For an offline copy, run `npm run build` and open
+`dist/index.html` straight off disk — the build bundles the modules into a
+single classic script for exactly that reason. `Iron Price.html` remains as a
+small compatibility launcher for older links.
 
 The theme music attempts to play when the game opens. Browsers that block audible autoplay start it on the first click or key press instead. The fixed music control turns playback on or off and remembers the preference in local storage.
 
@@ -82,18 +86,30 @@ new company; a running campaign then keeps its own copy.
 ```sh
 npm install          # install Vite and formatting tools
 npm run dev          # local development server
-npm test             # syntax, asset, audio, and entry-point checks
+npm test             # syntax, asset, audio, entry-point and rule checks
 npm run format       # format source and configuration files
 npm run build        # create the static dist/ deployment
 npm run preview      # preview a completed build
 ```
 
-The repository contains a formatted JavaScript recovery of the previous self-contained browser build rather than its original TypeScript module tree. Core game logic currently lives in `src/game.js`; it can be split into domain modules incrementally without changing the asset or music runtimes.
+The game began life as a recovered single-file browser build. That file has
+been split into ES modules along its own seams, and the minifier's mangled
+identifiers renamed, so the rules are readable and testable outside a browser.
+`npm test` parses every module, checks the assets, and runs the rule suite in
+`scripts/test-rules.mjs` — campaign economy, travel gating, defeat conditions,
+command validation, and seeded battle replay.
+
+The layers depend in one direction only: `battle/` knows nothing about the
+campaign, `campaign/` knows nothing about the DOM, and only `ui/` touches the
+document. That is what lets the rules run under Node.
 
 ## Repository layout
 
 - `index.html`: canonical game entry point.
-- `src/game.js`: campaign and tactical game runtime.
+- `src/main.js`: entry point; builds the campaign application.
+- `src/battle/`: hex geometry, weapons, terrain, battlefields, unit templates, battle state, command rules, and the enemy AI.
+- `src/campaign/`: campaign data, deterministic generation, campaign rules, the campaign-to-battle bridge, and save storage.
+- `src/ui/`: screen markup and behaviour — title, frontier map, campaign views, battle screen, and the Canvas battle renderer.
 - `src/game.css`: core game presentation.
 - `src/screens.css`: title screen and frontier map presentation.
 - `src/art-runtime.js` and `src/art.css`: generated-art UI integration.
@@ -103,6 +119,8 @@ The repository contains a formatted JavaScript recovery of the previous self-con
 - `assets/audio/iron-price-theme.mp3`: looping theme music.
 - `scripts/build-static.mjs`: reproducible static deployment builder.
 - `scripts/verify-static.mjs`: repository integrity checks.
+- `scripts/test-rules.mjs`: campaign and battle rule tests.
+- `scripts/check-syntax.mjs`: parses every module before the suite runs.
 
 ## Art integration
 

@@ -9,7 +9,10 @@ const manifest = JSON.parse(
 );
 const indexHtml = await readFile(join(root, "index.html"), "utf8");
 const legacyHtml = await readFile(join(root, "Iron Price.html"), "utf8");
-const gameScript = await readFile(join(root, "src/game.js"), "utf8");
+const battleRenderer = await readFile(
+  join(root, "src/ui/battle-renderer.js"),
+  "utf8",
+);
 const artRuntime = await readFile(join(root, "src/art-runtime.js"), "utf8");
 const musicPlayer = await readFile(join(root, "src/music-player.js"), "utf8");
 
@@ -78,7 +81,7 @@ const entryReferences = [
   "./src/art.css",
   "./src/screens.css",
   "./src/music-player.css",
-  "./src/game.js",
+  "./src/main.js",
   "./src/art-runtime.js",
   "./src/music-player.js",
 ];
@@ -93,8 +96,10 @@ if (!legacyHtml.includes("./index.html")) {
 }
 
 for (const overlay of manifest.overlays) {
-  if (!gameScript.includes(`overlays/${overlay}.webp`)) {
-    throw new Error(`Game runtime does not reference overlay ${overlay}.`);
+  if (!battleRenderer.includes(`overlays/${overlay}.webp`)) {
+    throw new Error(
+      `The battle renderer does not reference overlay ${overlay}.`,
+    );
   }
 }
 
