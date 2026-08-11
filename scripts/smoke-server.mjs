@@ -18,11 +18,11 @@ try {
   const indexResponse = await fetch(`${baseUrl}/`);
   assert.equal(indexResponse.status, 200);
   const indexHtml = await indexResponse.text();
-  assert(indexHtml.includes("./src/game.js"));
+  assert(indexHtml.includes("./src/main.js"));
   assert(indexHtml.includes("./src/music-player.js"));
 
   for (const path of [
-    "/src/game.js",
+    "/src/main.js",
     "/src/music-player.js",
     "/assets/audio/iron-price-theme.mp3",
   ]) {

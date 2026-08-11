@@ -29,13 +29,24 @@ export function renderBattleShell(s) {
 
   <section class="battle-layout">
     <div class="battle-stage">
-      <canvas id="battle-canvas" aria-label="Iron Price tactical battlefield"></canvas>
+      <div id="battle-viewport" class="battle-viewport" tabindex="0" aria-label="Scrollable tactical battlefield. Scroll to pan and use Control plus mouse wheel to zoom.">
+        <div id="battle-surface" class="battle-surface">
+          <canvas id="battle-canvas" aria-label="Iron Price tactical battlefield"></canvas>
+        </div>
+      </div>
       <div id="phase-banner" class="phase-banner">DEPLOYMENT</div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <div class="map-controls" role="group" aria-label="Map zoom controls">
+        <button id="map-zoom-out" class="map-control-button" type="button" aria-label="Zoom map out">−</button>
+        <output id="map-zoom-value" aria-live="polite">100%</output>
+        <button id="map-zoom-in" class="map-control-button" type="button" aria-label="Zoom map in">+</button>
+        <button id="map-zoom-fit" class="map-control-button map-fit-button" type="button">FIT</button>
+      </div>
       <div class="legend">
         <span><i class="legend-swatch move"></i> Reachable</span>
         <span><i class="legend-swatch path"></i> Planned path</span>
         <span><i class="legend-swatch threat"></i> Enemy</span>
+        <span class="map-gesture-hint">Scroll to pan · Ctrl + wheel to zoom</span>
       </div>
     </div>
 

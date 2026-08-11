@@ -158,7 +158,7 @@ export class BattleRenderer {
       this.context.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0));
     const t = (this.width - 54) / (12.5 * SQRT3),
       a = (this.height - 58) / 14.3;
-    this.size = Math.max(25, Math.min(49, t, a));
+    this.size = Math.max(25, Math.min(122, t, a));
     const i = SQRT3 * this.size * 12.5,
       n = this.size * 14.5;
     this.origin = {
@@ -314,6 +314,7 @@ export class BattleRenderer {
           t.closePath(),
           t.fill(),
           t.stroke());
+      this.drawTerrainDetails(a, i, e, o);
       const l = hexKey(a),
         d = a.q + Math.floor(a.r / 2);
       if (
@@ -393,6 +394,202 @@ export class BattleRenderer {
             0.72,
           )));
     }
+  }
+  terrainRandom(e, t = 0) {
+    let a = Math.imul(e.q + 131 + t * 17, 374761393);
+    return (
+      (a = Math.imul(a ^ (e.r + 197 + t * 31), 668265263)),
+      (a = (a ^ (a >>> 13)) >>> 0),
+      a / 4294967295
+    );
+  }
+  drawTerrainDetails(e, t, a, i) {
+    const n = this.context,
+      r = this.size;
+    if (e.terrain === "grass" || e.terrain === "hill") {
+      (n.save(),
+        (n.lineCap = "round"),
+        (n.lineWidth = Math.max(0.7, r * 0.018)));
+      for (let o = 0; o < 10; o += 1) {
+        const l = this.terrainRandom(e, o + 4),
+          d = this.terrainRandom(e, o + 42),
+          c = (l * Math.PI * 2 + o) % (Math.PI * 2),
+          m = r * (0.12 + d * 0.47),
+          v = t.x + Math.cos(c) * m,
+          b = t.y + Math.sin(c) * m * 0.72,
+          f = r * (0.07 + this.terrainRandom(e, o + 81) * 0.08);
+        ((n.strokeStyle =
+          o % 3 === 0 ? "rgba(202, 190, 121, .38)" : "rgba(30, 53, 30, .48)"),
+          n.beginPath(),
+          n.moveTo(v, b + f * 0.45),
+          n.quadraticCurveTo(v - f * 0.22, b, v - f * 0.08, b - f),
+          n.moveTo(v, b + f * 0.45),
+          n.quadraticCurveTo(v + f * 0.3, b, v + f * 0.55, b - f * 0.65),
+          n.stroke());
+      }
+      (n.restore(),
+        e.terrain === "hill" &&
+          (n.save(),
+          (n.strokeStyle = "rgba(50, 46, 29, .28)"),
+          (n.lineWidth = Math.max(1, r * 0.025)),
+          n.beginPath(),
+          n.arc(t.x, t.y + r * 0.15, r * 0.56, Math.PI * 1.08, Math.PI * 1.92),
+          n.stroke(),
+          n.restore()));
+      return;
+    }
+    if (e.terrain === "brush") {
+      for (let o = 0; o < 3; o += 1) {
+        const l = this.terrainRandom(e, o + 5),
+          d = this.terrainRandom(e, o + 27),
+          c = t.x + (l - 0.5) * r * 0.86,
+          m = t.y + (d - 0.5) * r * 0.62 + r * 0.06;
+        this.drawTree(
+          c,
+          m,
+          r * (0.24 + this.terrainRandom(e, o + 63) * 0.08),
+          o + i,
+        );
+      }
+      return;
+    }
+    if (e.terrain === "water") {
+      (n.save(),
+        (n.lineCap = "round"),
+        (n.lineWidth = Math.max(0.8, r * 0.025)));
+      for (let o = 0; o < 5; o += 1) {
+        const l = this.terrainRandom(e, o + 13),
+          d = this.terrainRandom(e, o + 39),
+          c = t.x + (l - 0.5) * r * 0.9,
+          m = t.y + (d - 0.5) * r * 0.96,
+          v = r * (0.08 + this.terrainRandom(e, o + 72) * 0.12),
+          b = Math.sin(a * 0.0025 + o + i * 0.02) * r * 0.025;
+        ((n.strokeStyle =
+          o % 2 ? "rgba(191, 224, 219, .28)" : "rgba(19, 45, 48, .46)"),
+          n.beginPath(),
+          n.moveTo(c - v, m + b),
+          n.quadraticCurveTo(c, m - r * 0.035 + b, c + v, m + b),
+          n.stroke());
+      }
+      for (let o = 0; o < 2; o += 1) {
+        const l = o ? 0.34 : -0.36,
+          d = t.x + r * l,
+          c = t.y + r * (o ? 0.38 : -0.34);
+        ((n.strokeStyle = "rgba(93, 106, 60, .72)"),
+          (n.lineWidth = Math.max(1, r * 0.025)),
+          n.beginPath(),
+          n.moveTo(d, c + r * 0.1),
+          n.lineTo(d - r * 0.02, c - r * 0.12),
+          n.moveTo(d + r * 0.04, c + r * 0.1),
+          n.lineTo(d + r * 0.08, c - r * 0.09),
+          n.stroke());
+      }
+      n.restore();
+      return;
+    }
+    if (e.terrain === "road") {
+      (n.save(),
+        (n.strokeStyle = "rgba(42, 31, 22, .35)"),
+        (n.lineWidth = Math.max(1, r * 0.045)),
+        (n.lineCap = "round"));
+      for (const o of [-0.18, 0.18]) {
+        (n.beginPath(),
+          n.moveTo(t.x - r * 0.48, t.y - r * (0.28 - o)),
+          n.quadraticCurveTo(
+            t.x,
+            t.y + r * o,
+            t.x + r * 0.5,
+            t.y + r * (0.28 + o),
+          ),
+          n.stroke());
+      }
+      n.restore();
+      return;
+    }
+    if (e.terrain === "mud") {
+      (n.save(), (n.fillStyle = "rgba(25, 26, 22, .34)"));
+      for (let o = 0; o < 4; o += 1) {
+        const l = t.x + (this.terrainRandom(e, o + 8) - 0.5) * r * 0.85,
+          d = t.y + (this.terrainRandom(e, o + 55) - 0.5) * r * 0.75;
+        (n.beginPath(),
+          n.ellipse(
+            l,
+            d,
+            r * (0.08 + o * 0.015),
+            r * 0.045,
+            0.3,
+            0,
+            Math.PI * 2,
+          ),
+          n.fill());
+      }
+      n.restore();
+      return;
+    }
+    if (e.terrain === "rock") {
+      (n.save(),
+        (n.strokeStyle = "rgba(202, 202, 181, .34)"),
+        (n.lineWidth = Math.max(0.8, r * 0.02)),
+        n.beginPath(),
+        n.moveTo(t.x - r * 0.22, t.y - r * 0.25),
+        n.lineTo(t.x - r * 0.05, t.y - r * 0.04),
+        n.lineTo(t.x + r * 0.14, t.y - r * 0.13),
+        n.moveTo(t.x - r * 0.05, t.y - r * 0.04),
+        n.lineTo(t.x + r * 0.08, t.y + r * 0.27),
+        n.stroke(),
+        n.restore());
+    }
+  }
+  drawTree(e, t, a, i) {
+    const n = this.context,
+      r = i % 2 === 0;
+    (n.save(),
+      (n.fillStyle = "rgba(6, 12, 8, .36)"),
+      n.beginPath(),
+      n.ellipse(
+        e + a * 0.08,
+        t + a * 0.62,
+        a * 0.82,
+        a * 0.28,
+        0,
+        0,
+        Math.PI * 2,
+      ),
+      n.fill(),
+      (n.strokeStyle = r ? "#4a3925" : "#3d3323"),
+      (n.lineWidth = Math.max(1.3, a * 0.16)),
+      (n.lineCap = "round"),
+      n.beginPath(),
+      n.moveTo(e, t + a * 0.5),
+      n.lineTo(e, t - a * 0.28),
+      n.moveTo(e, t - a * 0.08),
+      n.lineTo(e - a * 0.36, t - a * 0.42),
+      n.moveTo(e, t - a * 0.16),
+      n.lineTo(e + a * 0.36, t - a * 0.52),
+      n.stroke());
+    const o = n.createRadialGradient(
+      e - a * 0.2,
+      t - a * 0.62,
+      a * 0.08,
+      e,
+      t - a * 0.42,
+      a,
+    );
+    (o.addColorStop(0, r ? "#829062" : "#707e56"),
+      o.addColorStop(0.45, r ? "#52633f" : "#48593b"),
+      o.addColorStop(1, "#263326"),
+      (n.fillStyle = o));
+    for (const [l, d, c] of [
+      [-0.38, -0.42, 0.58],
+      [0.34, -0.5, 0.62],
+      [0, -0.78, 0.72],
+      [0.02, -0.25, 0.72],
+    ]) {
+      (n.beginPath(),
+        n.arc(e + a * l, t + a * d, a * c, 0, Math.PI * 2),
+        n.fill());
+    }
+    n.restore();
   }
   drawPath() {
     if (this.view.path.length < 2) return;
@@ -587,82 +784,7 @@ export class BattleRenderer {
               ? "#555a5d"
               : "#7c3c35",
       b = e.bodyArmorMax > 0 ? e.bodyArmor / e.bodyArmorMax : 0;
-    (e.hasShield &&
-      (a.save(),
-      a.translate(-m * 16 * n, 1 * n),
-      (a.fillStyle = e.team === "company" ? "#354e55" : "#5b2e2b"),
-      (a.strokeStyle = "#b08a4b"),
-      (a.lineWidth = 2 * n),
-      a.beginPath(),
-      a.moveTo(-10 * n, -14 * n),
-      a.lineTo(10 * n, -14 * n),
-      a.lineTo(12 * n, 8 * n),
-      a.lineTo(0, 18 * n),
-      a.lineTo(-12 * n, 8 * n),
-      a.closePath(),
-      a.fill(),
-      a.stroke(),
-      a.beginPath(),
-      a.moveTo(0, -10 * n),
-      a.lineTo(0, 11 * n),
-      a.stroke(),
-      a.restore()),
-      (a.strokeStyle = "#3a2d25"),
-      (a.lineWidth = 5 * n),
-      (a.lineCap = "round"),
-      a.beginPath(),
-      a.moveTo(-8 * n, 21 * n),
-      a.lineTo(-10 * n, 35 * n),
-      a.moveTo(8 * n, 21 * n),
-      a.lineTo(10 * n, 35 * n),
-      a.stroke());
-    const f = a.createLinearGradient(0, -14 * n, 0, 28 * n);
-    (f.addColorStop(0, shiftColor(v, Math.floor(b * 24))),
-      f.addColorStop(1, shiftColor(v, -18)),
-      (a.fillStyle = f),
-      (a.strokeStyle = "#171a1b"),
-      (a.lineWidth = 1.5 * n),
-      a.beginPath(),
-      a.moveTo(-15 * n, -8 * n),
-      a.quadraticCurveTo(0, -16 * n, 15 * n, -8 * n),
-      a.lineTo(12 * n, 24 * n),
-      a.lineTo(-12 * n, 24 * n),
-      a.closePath(),
-      a.fill(),
-      a.stroke(),
-      (a.strokeStyle = "rgba(222, 213, 191, .35)"),
-      (a.lineWidth = 1 * n));
-    for (let g = -2; g <= 15; g += 6)
-      (a.beginPath(),
-        a.moveTo(-10 * n, g * n),
-        a.lineTo(10 * n, g * n),
-        a.stroke());
-    const y =
-      e.id.charCodeAt(1) % 3 === 0
-        ? "#b98563"
-        : e.id.charCodeAt(1) % 3 === 1
-          ? "#d1a078"
-          : "#8e614c";
-    ((a.fillStyle = y),
-      a.beginPath(),
-      a.arc(0, -19 * n, 10 * n, 0, Math.PI * 2),
-      a.fill(),
-      (a.fillStyle = shiftColor(v, 22)),
-      (a.strokeStyle = "#171a1b"),
-      (a.lineWidth = 1.5 * n),
-      a.beginPath(),
-      a.arc(0, -22 * n, 11 * n, Math.PI, Math.PI * 2),
-      a.lineTo(10 * n, -17 * n),
-      a.lineTo(-10 * n, -17 * n),
-      a.closePath(),
-      a.fill(),
-      a.stroke(),
-      (a.strokeStyle = "#d0b16b"),
-      a.beginPath(),
-      a.moveTo(-9 * n, -18 * n),
-      a.lineTo(9 * n, -18 * n),
-      a.stroke(),
-      this.drawWeapon(e, m, n));
+    this.drawPortraitToken(e, m, n, v, b);
     const u = 37 * n,
       p = (g, T, x) => {
         ((a.fillStyle = "rgba(8, 10, 10, .82)"),
@@ -688,6 +810,159 @@ export class BattleRenderer {
         (a.font = `bold ${10 * n}px sans-serif`),
         a.fillText(e.morale === "confident" ? "▲" : "▼", 18 * n, -39 * n)),
       a.restore());
+  }
+  drawPortraitToken(e, t, a, i, n) {
+    const r = this.context,
+      o = e.id.charCodeAt(1) + e.name.length,
+      l = o % 3 === 0 ? "#b98563" : o % 3 === 1 ? "#d1a078" : "#8e614c",
+      d = ["#34251f", "#6d5032", "#292a27", "#8a6a42"][o % 4],
+      c = e.team === "company" ? "#6f9aa2" : "#a35a50";
+    (this.drawWeapon(e, t, a * 1.04),
+      e.hasShield &&
+        (r.save(),
+        r.translate(-t * 19 * a, 1 * a),
+        r.rotate(t * 0.1),
+        (r.fillStyle = e.team === "company" ? "#294950" : "#5a2926"),
+        (r.strokeStyle = "#c29c56"),
+        (r.lineWidth = 2.2 * a),
+        r.beginPath(),
+        r.moveTo(-10 * a, -14 * a),
+        r.lineTo(10 * a, -14 * a),
+        r.lineTo(12 * a, 7 * a),
+        r.quadraticCurveTo(0, 19 * a, -12 * a, 7 * a),
+        r.closePath(),
+        r.fill(),
+        r.stroke(),
+        (r.strokeStyle = "rgba(235, 204, 124, .8)"),
+        (r.lineWidth = 1.2 * a),
+        r.beginPath(),
+        r.moveTo(0, -10 * a),
+        r.lineTo(0, 10 * a),
+        r.moveTo(-7 * a, -1 * a),
+        r.lineTo(7 * a, -1 * a),
+        r.stroke(),
+        r.restore()),
+      r.save(),
+      (r.fillStyle = "#111615"),
+      (r.strokeStyle = c),
+      (r.lineWidth = 3.2 * a),
+      r.beginPath(),
+      r.arc(0, 0, 22 * a, 0, Math.PI * 2),
+      r.fill(),
+      r.stroke(),
+      r.beginPath(),
+      r.arc(0, 0, 19.5 * a, 0, Math.PI * 2),
+      r.clip());
+    const m = r.createLinearGradient(0, -20 * a, 0, 20 * a);
+    (m.addColorStop(0, shiftColor(i, 12)),
+      m.addColorStop(0.58, shiftColor(i, -10)),
+      m.addColorStop(1, "#181d1c"),
+      (r.fillStyle = m),
+      r.fillRect(-22 * a, -22 * a, 44 * a, 44 * a));
+    const v = r.createLinearGradient(0, 2 * a, 0, 22 * a);
+    (v.addColorStop(0, shiftColor(i, Math.floor(n * 28))),
+      v.addColorStop(1, shiftColor(i, -26)),
+      (r.fillStyle = v),
+      (r.strokeStyle = "#151817"),
+      (r.lineWidth = 1.3 * a),
+      r.beginPath(),
+      r.ellipse(0, 17 * a, 20 * a, 14 * a, 0, Math.PI, Math.PI * 2),
+      r.lineTo(20 * a, 23 * a),
+      r.lineTo(-20 * a, 23 * a),
+      r.closePath(),
+      r.fill(),
+      r.stroke(),
+      (r.strokeStyle = "rgba(225, 216, 190, .38)"),
+      (r.lineWidth = 1 * a));
+    for (let b = 6; b <= 18; b += 4)
+      (r.beginPath(),
+        r.moveTo(-13 * a, b * a),
+        r.lineTo(13 * a, b * a),
+        r.stroke());
+    ((r.fillStyle = shiftColor(l, -14)),
+      r.fillRect(-4 * a, 3 * a, 8 * a, 8 * a),
+      (r.fillStyle = l),
+      r.beginPath(),
+      r.ellipse(0, -5 * a, 9.2 * a, 11.5 * a, 0, 0, Math.PI * 2),
+      r.fill(),
+      (r.fillStyle = shiftColor(l, -10)));
+    for (const b of [-9.5, 9.5])
+      (r.beginPath(), r.arc(b * a, -4 * a, 2.1 * a, 0, Math.PI * 2), r.fill());
+    if (e.headArmorMax >= 42) {
+      ((r.fillStyle = shiftColor(i, 27)),
+        (r.strokeStyle = "#181b1b"),
+        (r.lineWidth = 1.3 * a),
+        r.beginPath(),
+        r.arc(0, -8 * a, 10.5 * a, Math.PI, Math.PI * 2),
+        r.lineTo(9.5 * a, -3.5 * a),
+        r.lineTo(6.8 * a, -1 * a),
+        r.lineTo(5.7 * a, -5 * a),
+        r.lineTo(-5.7 * a, -5 * a),
+        r.lineTo(-6.8 * a, -1 * a),
+        r.lineTo(-9.5 * a, -3.5 * a),
+        r.closePath(),
+        r.fill(),
+        r.stroke(),
+        (r.strokeStyle = "#d0b16b"),
+        r.beginPath(),
+        r.moveTo(-8 * a, -5.2 * a),
+        r.lineTo(8 * a, -5.2 * a),
+        r.stroke());
+    } else {
+      ((r.fillStyle = d),
+        r.beginPath(),
+        r.arc(0, -9 * a, 9.3 * a, Math.PI, Math.PI * 2),
+        r.lineTo(8 * a, -6 * a),
+        r.quadraticCurveTo(1 * a, -10 * a, -8.5 * a, -5.5 * a),
+        r.closePath(),
+        r.fill());
+    }
+    ((r.fillStyle = "#171514"),
+      r.beginPath(),
+      r.ellipse(-3.7 * a, -4.5 * a, 1.05 * a, 0.75 * a, 0, 0, Math.PI * 2),
+      r.ellipse(3.7 * a, -4.5 * a, 1.05 * a, 0.75 * a, 0, 0, Math.PI * 2),
+      r.fill(),
+      (r.strokeStyle = shiftColor(l, -30)),
+      (r.lineWidth = 0.9 * a),
+      r.beginPath(),
+      r.moveTo(0, -3 * a),
+      r.lineTo(-0.8 * a, 1 * a),
+      r.lineTo(1.4 * a, 1.2 * a),
+      r.stroke(),
+      r.beginPath(),
+      r.moveTo(-3 * a, 4.2 * a),
+      r.quadraticCurveTo(0, 5.4 * a, 3 * a, 4.1 * a),
+      r.stroke());
+    if (o % 3 === 0)
+      ((r.fillStyle = d),
+        r.beginPath(),
+        r.moveTo(-5.5 * a, 2.5 * a),
+        r.quadraticCurveTo(0, 5.5 * a, 5.5 * a, 2.5 * a),
+        r.quadraticCurveTo(4 * a, 10 * a, 0, 10.5 * a),
+        r.quadraticCurveTo(-4 * a, 10 * a, -5.5 * a, 2.5 * a),
+        r.fill());
+    (r.restore(),
+      (r.strokeStyle = "rgba(241, 226, 190, .45)"),
+      (r.lineWidth = 1 * a),
+      r.beginPath(),
+      r.arc(0, 0, 18.4 * a, Math.PI * 1.08, Math.PI * 1.82),
+      r.stroke());
+    const f = { sword: "†", spear: "↟", axe: "⌁", mace: "●" }[e.weaponId];
+    (r.save(),
+      r.translate(t * 17 * a, 14 * a),
+      (r.fillStyle = "rgba(12, 15, 15, .94)"),
+      (r.strokeStyle = "#c5a45c"),
+      (r.lineWidth = 1.5 * a),
+      r.beginPath(),
+      r.arc(0, 0, 7 * a, 0, Math.PI * 2),
+      r.fill(),
+      r.stroke(),
+      (r.fillStyle = "#f0ddae"),
+      (r.font = `bold ${11 * a}px Georgia, serif`),
+      (r.textAlign = "center"),
+      (r.textBaseline = "middle"),
+      r.fillText(f, 0, 0.5 * a),
+      r.restore());
   }
   drawWeapon(e, t, a) {
     const i = this.context;

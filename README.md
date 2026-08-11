@@ -37,6 +37,8 @@ Battle controls:
 - During deployment, click a company fighter and then an open blue hex.
 - During battle, click a highlighted hex to move.
 - Hover an adjacent enemy to inspect the complete attack forecast; click to strike.
+- Scroll the battlefield when zoomed, use `Ctrl`/`Cmd` + mouse wheel to zoom,
+  or use the map's `−`, `+`, and `FIT` controls.
 - `1` attacks an adjacent target, `W` waits, and `E` ends the activation.
 
 ## Implemented campaign
@@ -80,7 +82,11 @@ new company; a running campaign then keeps its own copy.
 
 - Seven hand-authored 12x10 pointy-top battlefield layouts with terrain, elevation, blockers, movement costs, and defence modifiers.
 - Three enemy factions: balanced Thorn Reavers, fast Mireborn, and heavily armored Ironbound.
-- Objective markers, escape zones, captain marks, hit particles, armor impacts, casualties, and faction silhouettes rendered directly in Canvas.
+- Layered grass, water, reeds, tree groves, roads, mud, rock, portrait fighters,
+  objective markers, impacts, casualties, and faction silhouettes rendered
+  directly in Canvas.
+- A scrollable battlefield with 100–250% zoom, centered zoom anchoring, and
+  keyboard-accessible zoom controls.
 - Initiative rounds, action points, fatigue, waiting, recovery, and rout movement.
 - Sword, spear, axe, and mace profiles with shields, accuracy, armor damage, penetration, and stagger.
 - Separate head armor, body armor, health, morale states, death, and routing.

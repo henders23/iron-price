@@ -37,6 +37,12 @@ export class BattleScreen {
   options;
   initialState;
   keyHandler;
+  mapKeyHandler;
+  mapWheelHandler;
+  mapResizeObserver;
+  mapViewport;
+  mapSurface;
+  mapZoom = 1;
   constructor(e) {
     ((this.options = e),
       (this.seed = e.seed >>> 0),
@@ -92,8 +98,79 @@ export class BattleScreen {
             });
         }
       }),
+      this.setupMapViewport(),
       this.bindControls(),
       this.refresh());
+  }
+  setupMapViewport() {
+    const e = document.querySelector("#battle-viewport"),
+      t = document.querySelector("#battle-surface");
+    if (!e || !t) return;
+    ((this.mapViewport = e),
+      (this.mapSurface = t),
+      (this.mapWheelHandler = (a) => {
+        if (!a.ctrlKey && !a.metaKey) return;
+        (a.preventDefault(),
+          this.setMapZoom(this.mapZoom + (a.deltaY < 0 ? 0.15 : -0.15)));
+      }),
+      (this.mapKeyHandler = (a) => {
+        if (a.key === "+" || a.key === "=") {
+          (a.preventDefault(), this.setMapZoom(this.mapZoom + 0.25));
+        } else if (a.key === "-") {
+          (a.preventDefault(), this.setMapZoom(this.mapZoom - 0.25));
+        } else if (a.key === "0") {
+          (a.preventDefault(), this.setMapZoom(1));
+        }
+      }),
+      e.addEventListener("wheel", this.mapWheelHandler, { passive: !1 }),
+      e.addEventListener("keydown", this.mapKeyHandler),
+      document
+        .querySelector("#map-zoom-in")
+        ?.addEventListener("click", () => this.setMapZoom(this.mapZoom + 0.25)),
+      document
+        .querySelector("#map-zoom-out")
+        ?.addEventListener("click", () => this.setMapZoom(this.mapZoom - 0.25)),
+      document
+        .querySelector("#map-zoom-fit")
+        ?.addEventListener("click", () => this.setMapZoom(1)),
+      (this.mapResizeObserver = new ResizeObserver(() =>
+        this.resizeMapSurface(),
+      )),
+      this.mapResizeObserver.observe(e),
+      this.resizeMapSurface());
+  }
+  resizeMapSurface() {
+    if (!this.mapViewport || !this.mapSurface) return;
+    const e = Math.max(1, this.mapViewport.clientWidth),
+      t = Math.max(1, this.mapViewport.clientHeight);
+    ((this.mapSurface.style.width = `${Math.round(e * this.mapZoom)}px`),
+      (this.mapSurface.style.height = `${Math.round(t * this.mapZoom)}px`));
+    const a = document.querySelector("#map-zoom-value"),
+      i = document.querySelector("#map-zoom-out"),
+      n = document.querySelector("#map-zoom-in");
+    (a && (a.textContent = `${Math.round(this.mapZoom * 100)}%`),
+      i && (i.disabled = this.mapZoom <= 1),
+      n && (n.disabled = this.mapZoom >= 2.5));
+  }
+  setMapZoom(e) {
+    if (!this.mapViewport || !this.mapSurface) return;
+    const t = Math.max(1, Math.min(2.5, Math.round(e * 20) / 20));
+    if (t === this.mapZoom) return;
+    const a = this.mapSurface.offsetWidth || this.mapViewport.clientWidth,
+      i = this.mapSurface.offsetHeight || this.mapViewport.clientHeight,
+      n = (this.mapViewport.scrollLeft + this.mapViewport.clientWidth / 2) / a,
+      r = (this.mapViewport.scrollTop + this.mapViewport.clientHeight / 2) / i;
+    ((this.mapZoom = t), this.resizeMapSurface(), this.renderer.resize());
+    requestAnimationFrame(() => {
+      if (!this.mapViewport || !this.mapSurface) return;
+      ((this.mapViewport.scrollLeft =
+        n * this.mapSurface.offsetWidth - this.mapViewport.clientWidth / 2),
+        (this.mapViewport.scrollTop =
+          r * this.mapSurface.offsetHeight -
+          this.mapViewport.clientHeight / 2));
+      if (t === 1)
+        ((this.mapViewport.scrollLeft = 0), (this.mapViewport.scrollTop = 0));
+    });
   }
   bindControls() {
     (document
@@ -150,6 +227,9 @@ export class BattleScreen {
   }
   dispose() {
     (document.removeEventListener("keydown", this.keyHandler),
+      this.mapViewport?.removeEventListener("wheel", this.mapWheelHandler),
+      this.mapViewport?.removeEventListener("keydown", this.mapKeyHandler),
+      this.mapResizeObserver?.disconnect(),
       this.renderer.destroy());
   }
   onHover(e) {
