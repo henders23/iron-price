@@ -14,10 +14,12 @@ import {
   isLocationUnlocked,
   repairArmor,
   restOneDay,
+  roadRoute,
   toggleShield,
   travelTo,
 } from "../src/campaign/campaign.js";
 import {
+  contractsAt,
   contractsHere,
   rollMarket,
   rollRecruits,
@@ -197,6 +199,44 @@ test("contracts are local, deterministic, and hold the final one back", () => {
   assert.equal(contractsHere(campaign).length, 0);
   campaign.completedContracts = 6;
   assert.equal(contractsHere(campaign).length, 1);
+});
+
+test("distant towns post their own board", () => {
+  const campaign = newCampaign();
+  const fenmere = contractsAt(campaign, "fenmere");
+  assert.ok(fenmere.length > 0);
+  for (const contract of fenmere) assert.equal(contract.locationId, "fenmere");
+  assert.notDeepEqual(
+    fenmere.map((c) => c.id),
+    contractsHere(campaign).map((c) => c.id),
+  );
+});
+
+test("routes follow open roads and shorten as the frontier opens", () => {
+  const campaign = newCampaign();
+  assert.deepEqual(roadRoute(campaign, "cinderfall"), []);
+  assert.deepEqual(roadRoute(campaign, "fenmere"), ["fenmere"]);
+  // Blackbriar is gated at the start, so nothing reaches past it.
+  assert.equal(roadRoute(campaign, "blackbriar"), null);
+  assert.equal(roadRoute(campaign, "crowns-end"), null);
+
+  campaign.completedContracts = 6;
+  const toEnd = roadRoute(campaign, "crowns-end");
+  assert.equal(toEnd.at(-1), "crowns-end");
+  assert.equal(toEnd.length, 4);
+  // Every step is a real road, and the first leg leaves from where we stand.
+  let from = campaign.currentLocation;
+  for (const step of toEnd) {
+    assert.ok(
+      LOCATIONS[from].neighbors.includes(step),
+      `${from} does not border ${step}`,
+    );
+    from = step;
+  }
+
+  // Marching the first leg shortens the route by exactly that leg.
+  campaign.currentLocation = toEnd[0];
+  assert.deepEqual(roadRoute(campaign, "crowns-end"), toEnd.slice(1));
 });
 
 test("danger and reward rise with threat and progress", () => {

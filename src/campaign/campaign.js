@@ -110,6 +110,29 @@ export function isLocationUnlocked(s, e) {
         ? s.completedContracts >= 4
         : s.completedContracts >= 6;
 }
+// Shortest chain of open roads from where the company stands to `destination`,
+// excluding the starting location and ending at the destination. Null when no
+// route exists yet. Ties break on location id so the route never flickers.
+export function roadRoute(s, destination) {
+  if (destination === s.currentLocation) return [];
+  if (!isLocationUnlocked(s, destination)) return null;
+  const seen = new Set([s.currentLocation]);
+  let frontier = [[s.currentLocation, []]];
+  while (frontier.length > 0) {
+    const next = [];
+    for (const [id, path] of frontier)
+      for (const neighbor of [...LOCATIONS[id].neighbors].sort()) {
+        if (seen.has(neighbor) || !isLocationUnlocked(s, neighbor)) continue;
+        const route = [...path, neighbor];
+        if (neighbor === destination) return route;
+        seen.add(neighbor);
+        next.push([neighbor, route]);
+      }
+    frontier = next;
+  }
+  return null;
+}
+
 export function evaluateCampaignStatus(s) {
   return (
     s.status !== "active" ||

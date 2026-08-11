@@ -83,14 +83,22 @@ export function createRecruit(s, e) {
   };
 }
 export function contractsHere(s) {
-  return CONTRACTS.filter((e) => e.locationId === s.currentLocation)
+  return contractsAt(s, s.currentLocation);
+}
+
+// The board as it stands today at any location. Only the company's own town
+// posts contracts it can accept; elsewhere this is a planning preview, and the
+// terms are re-rolled on arrival because they move with the day and the
+// company's record.
+export function contractsAt(s, location) {
+  return CONTRACTS.filter((e) => e.locationId === location)
     .filter((e) => e.story !== "final" || s.completedContracts >= 6)
     .map((e, t) => {
       const { baseDanger: a, baseReward: i, ...n } = e,
         r = Math.min(3, a + (s.threat >= 65 ? 1 : 0));
       return {
         ...n,
-        id: `contract-${s.currentLocation}-${s.day}-${t}`,
+        id: `contract-${location}-${s.day}-${t}`,
         seed: mixSeed(
           s.baseSeed + s.day * 4099 + t * 65537 + s.completedContracts * 313,
         ),

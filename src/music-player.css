@@ -29,6 +29,29 @@
   outline: none;
 }
 
+/* Docked into a screen's own chrome: it flows with the layout instead of
+   floating over the bottom-right corner. */
+.music-toggle--docked {
+  position: static;
+  min-height: 0;
+  padding: 8px 12px;
+  border-radius: 0;
+  background: rgb(11 13 14 / 40%);
+  border-color: rgb(230 215 184 / 14%);
+  box-shadow: none;
+  backdrop-filter: none;
+  font:
+    600 9px/1 Cinzel,
+    Georgia,
+    serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.music-toggle--docked .music-toggle__icon {
+  font-size: 13px;
+}
+
 .music-toggle__icon {
   color: #d6b568;
   font:

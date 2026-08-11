@@ -303,15 +303,25 @@
 .ip-title-footer {
   position: absolute;
   left: 108px;
-  /* Clears the fixed music control anchored in the bottom-right corner. */
-  right: 190px;
+  right: 48px;
   bottom: clamp(12px, 2.8vh, 34px);
   z-index: 2;
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 24px;
   pointer-events: none;
+}
+
+.ip-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.ip-music-slot {
+  display: flex;
+  pointer-events: auto;
 }
 
 .ip-title-footer .ip-build {
@@ -599,8 +609,7 @@
 
 .ip-panel-foot {
   margin-top: auto;
-  /* Extra bottom padding clears the fixed music control. */
-  padding: 20px 0 40px;
+  padding-top: 20px;
 }
 
 /* ------------------------------------------------------------ map topbar */
@@ -914,6 +923,33 @@
   stroke-dasharray: 0.7 1.4;
 }
 
+/* The chain of roads to the selected town. */
+.ip-roads .road.on-route {
+  stroke: rgba(230, 215, 184, 0.95);
+  stroke-width: 0.42;
+  stroke-dasharray: none;
+}
+
+.ip-roads .road-glow.on-route {
+  stroke: rgba(195, 157, 79, 0.3);
+}
+
+.ip-node-step {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: #12100a;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--ip-gold), var(--ip-gold-deep));
+  font-family: var(--ip-serif);
+  font-size: 10px;
+  font-weight: 900;
+}
+
 .ip-node {
   position: absolute;
   z-index: 2;
@@ -1202,6 +1238,78 @@ button.ip-service:hover {
   font-style: normal;
 }
 
+/* Postings at a town the company has not reached: readable, not clickable. */
+.ip-contract.distant {
+  cursor: default;
+  opacity: 0.82;
+}
+
+.ip-contract.distant:hover {
+  border-color: rgba(230, 215, 184, 0.12);
+  background: rgba(11, 13, 14, 0.5);
+}
+
+.ip-dossier-footnote {
+  margin: 10px 0 0;
+  color: rgba(196, 188, 173, 0.5);
+  font-family: var(--ip-flavor);
+  font-size: 12.5px;
+  font-style: italic;
+}
+
+.ip-dossier-label.standing-label {
+  margin-top: 26px;
+}
+
+.ip-standing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.ip-standing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+}
+
+.ip-standing.local {
+  border-color: rgba(195, 157, 79, 0.35);
+  background: rgba(195, 157, 79, 0.05);
+}
+
+.ip-standing-seal {
+  width: 22px;
+  height: 22px;
+  background-image: var(--ip-emblem);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.ip-standing-name {
+  flex: 1;
+  color: var(--ip-body-text);
+  font-family: var(--ip-serif);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+
+.ip-standing b {
+  color: var(--ip-parchment);
+  font-family: var(--ip-serif);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ip-standing.local b {
+  color: var(--ip-gold);
+}
+
 .ip-dossier-empty {
   color: rgba(196, 188, 173, 0.65);
   font-family: var(--ip-flavor);
@@ -1210,8 +1318,7 @@ button.ip-service:hover {
 }
 
 .ip-dossier-foot {
-  /* Extra bottom padding clears the fixed music control. */
-  padding: 22px 30px 66px;
+  padding: 22px 30px 28px;
 }
 
 .ip-march {

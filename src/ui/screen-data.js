@@ -71,6 +71,11 @@ export const TOPBAR_RESOURCES = [
   ["medicine", "Medicine"],
   ["renown", "Renown"],
 ];
+export const REPUTATIONS = [
+  ["free-towns", "FREE TOWNS"],
+  ["fenwardens", "FENWARDENS"],
+  ["house-cael", "HOUSE CAEL"],
+];
 export const SERVICE_CHIPS = {
   market: { label: "MARKET", view: "market" },
   recruits: { label: "RECRUITS", view: "recruits" },

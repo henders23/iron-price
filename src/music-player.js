@@ -123,7 +123,34 @@
     updateToggle();
   });
 
+  // Screens that have somewhere sensible to put the control expose a slot; the
+  // control docks into it and drops its fixed positioning. Screens that do not
+  // (the battle, the modal screens) leave it floating in the corner. Screens
+  // re-render wholesale, so the slot has to be re-found after every mutation.
+  function dock() {
+    const slot = document.querySelector("[data-music-slot]");
+    const host = slot ?? document.body;
+    if (toggle.parentElement === host) return;
+    host.append(toggle);
+    toggle.classList.toggle("music-toggle--docked", Boolean(slot));
+  }
+
+  let dockQueued = false;
+  function scheduleDock() {
+    if (dockQueued) return;
+    dockQueued = true;
+    requestAnimationFrame(() => {
+      dockQueued = false;
+      dock();
+    });
+  }
+
   document.body.append(audio, toggle);
+  dock();
+  new MutationObserver(scheduleDock).observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
   updateToggle();
   if (enabled) void startPlayback();
 })();

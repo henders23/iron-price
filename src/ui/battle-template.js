@@ -15,7 +15,7 @@ export function renderBattleShell(s) {
       <strong>${e?.objective ?? "Break the Thorn Reavers"}</strong>
       <span id="objective-copy">Deploy your company in the western quarter.</span>
     </div>
-    <div class="battle-meta">
+    <div class="battle-meta" data-music-slot>
       <div><span>ROUND</span><strong id="round-value">—</strong></div>
       <div><span>STATE</span><strong id="hash-value">00000000</strong></div>
       <button id="help-button" class="icon-button" aria-label="Battle help">?</button>

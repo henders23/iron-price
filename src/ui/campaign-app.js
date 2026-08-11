@@ -15,10 +15,12 @@ import {
   repairArmor,
   resolveRoadEvent,
   restOneDay,
+  roadRoute,
   toggleShield,
   travelTo,
 } from "../campaign/campaign.js";
 import { LOCATIONS, ORIGINS, PERKS } from "../campaign/data.js";
+import { contractsAt } from "../campaign/generation.js";
 import {
   deleteCampaign,
   loadAllCampaigns,
@@ -38,6 +40,7 @@ import {
   MAP_NODES,
   OBJECTIVE_ART,
   OBJECTIVE_LABEL,
+  REPUTATIONS,
   SERVICE_CHIPS,
   TOPBAR_RESOURCES,
   emberLayer,
@@ -95,7 +98,7 @@ export class CampaignApp {
         </div>
       </div>
       <div class="ip-title-footer">
-        <span class="ip-build">CAMPAIGN RUN V1</span>
+        <span class="ip-footer-left"><span class="ip-build">CAMPAIGN RUN V1</span><span class="ip-music-slot" data-music-slot></span></span>
         <span class="ip-quote">“A company is only worth the names cut in its stone.”</span>
       </div>
       ${emberLayer()}
@@ -323,7 +326,7 @@ export class CampaignApp {
           <span class="ip-topbar-rule"></span>
           <span class="ip-day">DAY ${e.day} / 50</span>
           <span class="ip-topbar-rule"></span>
-          <div class="campaign-top-actions"><button id="settings-button" class="campaign-menu-button">SETTINGS</button><button id="save-and-title" class="campaign-menu-button">LEDGER</button></div>
+          <div class="campaign-top-actions" data-music-slot><button id="settings-button" class="campaign-menu-button">SETTINGS</button><button id="save-and-title" class="campaign-menu-button">LEDGER</button></div>
         </div>
       </header>
       <div class="campaign-body">
@@ -386,122 +389,170 @@ export class CampaignApp {
             : "ROAD GATED";
   }
   renderFrontierMap() {
-    const e = this.campaign,
-      t = LOCATIONS[e.currentLocation],
-      a = LOCATIONS[this.selectedLocationId] ?? t,
-      i = this.ipLocationStatus(a.id),
-      n = MAP_NODES[a.id],
-      r = e.roster.filter((c) => c.alive).length * 2,
-      o = dailyWages(e) * 2,
-      l = Object.values(LOCATIONS).flatMap((c) =>
-        c.neighbors
-          .filter((m) => c.id < m)
-          .map(
-            (m) =>
-              `<line class="road-glow" x1="${MAP_NODES[c.id].x}" y1="${MAP_NODES[c.id].y}" x2="${MAP_NODES[m].x}" y2="${MAP_NODES[m].y}"></line><line class="road ${isLocationUnlocked(e, c.id) && isLocationUnlocked(e, m) ? "" : "held"}" x1="${MAP_NODES[c.id].x}" y1="${MAP_NODES[c.id].y}" x2="${MAP_NODES[m].x}" y2="${MAP_NODES[m].y}"></line>`,
-          ),
-      ),
-      d = Object.values(LOCATIONS)
-        .map((c) => {
-          const m = this.ipLocationStatus(c.id),
-            u = MAP_NODES[c.id];
-          return `<button class="ip-node ${m} ${c.id === a.id ? "selected" : ""}" style="left:${u.x}%;top:${u.y}%" data-location="${c.id}" aria-pressed="${c.id === a.id}">
-            <span class="ip-node-disc">
-              ${m === "current" ? '<span class="ip-node-pulse"></span>' : ""}
-              <span class="ip-node-ring"></span>
-              <span class="ip-node-emblem" style="--ip-emblem:url('${ART_PATH}emblems/${u.emblem}.webp')"></span>
-            </span>
-            <span class="ip-node-name">${escapeHtml(c.name.toUpperCase())}</span>
-            <span class="ip-node-tag">${this.ipStatusTag(m, c.id)}</span>
-          </button>`;
-        })
-        .join("");
-    let p = "",
-      f = "",
-      y = !1;
-    if (i === "current")
-      ((p = "THE COMPANY IS HERE"),
-        (f = "Rest, resupply, or take a contract."));
-    else if (i === "gated") {
-      const c = unlockRequirement(a.id);
-      ((p =
-        a.id === "crowns-end"
+    const campaign = this.campaign;
+    const here = LOCATIONS[campaign.currentLocation];
+    const selected = LOCATIONS[this.selectedLocationId] ?? here;
+    const status = this.ipLocationStatus(selected.id);
+    const node = MAP_NODES[selected.id];
+    const foodCost = campaign.roster.filter((f) => f.alive).length * 2;
+    const wageCost = dailyWages(campaign) * 2;
+
+    // The chain of open roads to the selection, so a distant town can be
+    // marched toward one leg at a time instead of only being looked at.
+    const route = roadRoute(campaign, selected.id);
+    const legs = route ? [here.id, ...route] : [];
+    const routeEdges = new Set(
+      legs.slice(1).map((id, index) => [legs[index], id].sort().join(">")),
+    );
+
+    const roads = Object.values(LOCATIONS).flatMap((location) =>
+      location.neighbors
+        .filter((other) => location.id < other)
+        .map((other) => {
+          const open =
+            isLocationUnlocked(campaign, location.id) &&
+            isLocationUnlocked(campaign, other);
+          const onRoute = routeEdges.has([location.id, other].sort().join(">"));
+          const ends = `x1="${MAP_NODES[location.id].x}" y1="${MAP_NODES[location.id].y}" x2="${MAP_NODES[other].x}" y2="${MAP_NODES[other].y}"`;
+          return `<line class="road-glow ${onRoute ? "on-route" : ""}" ${ends}></line><line class="road ${open ? "" : "held"} ${onRoute ? "on-route" : ""}" ${ends}></line>`;
+        }),
+    );
+
+    const nodes = Object.values(LOCATIONS)
+      .map((location) => {
+        const state = this.ipLocationStatus(location.id);
+        const art = MAP_NODES[location.id];
+        const step = legs.indexOf(location.id);
+        return `<button class="ip-node ${state} ${location.id === selected.id ? "selected" : ""}" style="left:${art.x}%;top:${art.y}%" data-location="${location.id}" aria-pressed="${location.id === selected.id}">
+          <span class="ip-node-disc">
+            ${state === "current" ? '<span class="ip-node-pulse"></span>' : ""}
+            <span class="ip-node-ring"></span>
+            <span class="ip-node-emblem" style="--ip-emblem:url('${ART_PATH}emblems/${art.emblem}.webp')"></span>
+            ${step > 0 ? `<span class="ip-node-step">${step}</span>` : ""}
+          </span>
+          <span class="ip-node-name">${escapeHtml(location.name.toUpperCase())}</span>
+          <span class="ip-node-tag">${this.ipStatusTag(state, location.id)}</span>
+        </button>`;
+      })
+      .join("");
+
+    const affordable = campaign.food >= foodCost && campaign.crowns >= wageCost;
+    const shortfall =
+      campaign.food < foodCost
+        ? `The march needs ${foodCost} food; the company carries ${campaign.food}.`
+        : `The march needs ${wageCost} crowns in wages; the company holds ${campaign.crowns}.`;
+    let marchLabel = "";
+    let marchNote = "";
+    let marchTo = null;
+
+    if (status === "current") {
+      marchLabel = "THE COMPANY IS HERE";
+      marchNote = "Rest, resupply, or take a contract.";
+    } else if (status === "gated") {
+      const required = unlockRequirement(selected.id);
+      marchLabel =
+        selected.id === "crowns-end"
           ? "SECURE SIX CONTRACTS FIRST"
-          : `ROAD GATED — ${c} CONTRACTS REQUIRED`),
-        (f =
-          a.id === "crowns-end"
-            ? "No road reaches the fortress while the frontier still owes six contracts."
-            : `The frontier threat holds that road until ${c} contracts are settled.`));
-    } else
-      i === "secured"
-        ? ((p = "NO DIRECT ROAD"),
-          (f = `No road runs straight there from ${escapeHtml(t.name)}.`))
-        : ((y = e.food >= r && e.crowns >= o),
-          (p = "MARCH — 2 DAYS"),
-          (f = y
-            ? `${o} crowns · ${r} food · threat rises by 4`
-            : e.food < r
-              ? `The march needs ${r} food; the company carries ${e.food}.`
-              : `The march needs ${o} crowns in wages; the company holds ${e.crowns}.`));
-    const b = a.services
-      .map((c) => SERVICE_CHIPS[c])
+          : `ROAD GATED — ${required} CONTRACTS REQUIRED`;
+      marchNote =
+        selected.id === "crowns-end"
+          ? "No road reaches the fortress while the frontier still owes six contracts."
+          : `The frontier threat holds that road until ${required} contracts are settled.`;
+    } else if (!route || route.length === 0) {
+      marchLabel = "NO OPEN ROAD";
+      marchNote = `No chain of open roads reaches ${escapeHtml(selected.name)} yet.`;
+    } else if (route.length === 1) {
+      marchTo = affordable ? selected.id : null;
+      marchLabel = "MARCH — 2 DAYS";
+      marchNote = affordable
+        ? `${wageCost} crowns · ${foodCost} food · threat rises by 4`
+        : shortfall;
+    } else {
+      const first = LOCATIONS[route[0]];
+      marchTo = affordable ? first.id : null;
+      marchLabel = `MARCH TO ${escapeHtml(first.name.toUpperCase())}`;
+      marchNote = affordable
+        ? `Leg 1 of ${route.length} to ${escapeHtml(selected.name)} · 2 days · ${wageCost} crowns · ${foodCost} food`
+        : shortfall;
+    }
+
+    const services = selected.services
+      .map((service) => SERVICE_CHIPS[service])
       .filter(Boolean)
-      .map((c) =>
-        c.view && a.id === t.id
-          ? `<button class="ip-service" data-service-view="${c.view}">${c.label}</button>`
-          : `<span class="ip-service">${c.label}</span>`,
+      .map((chip) =>
+        chip.view && selected.id === here.id
+          ? `<button class="ip-service" data-service-view="${chip.view}">${chip.label}</button>`
+          : `<span class="ip-service">${chip.label}</span>`,
       );
+
+    const standing = REPUTATIONS.map(
+      ([id, label]) =>
+        `<div class="ip-standing ${id === selected.reputation ? "local" : ""}">
+          <span class="ip-standing-seal" style="--ip-emblem:url('${ART_PATH}emblems/${id}.webp')"></span>
+          <span class="ip-standing-name">${label}</span>
+          <b>${campaign.reputations[id] > 0 ? "+" : ""}${campaign.reputations[id]}</b>
+        </div>`,
+    ).join("");
+
+    const atHome = selected.id === here.id;
+    const offered = atHome
+      ? campaign.contracts
+      : contractsAt(campaign, selected.id);
+    const contractCard = (contract) => {
+      const body = `<span class="ip-contract-seal" style="--ip-emblem:url('${ART_PATH}emblems/${contract.enemyFaction}.webp')"></span>
+        <span class="ip-contract-text">
+          <span class="ip-contract-title">${escapeHtml(contract.title)}</span>
+          <span class="ip-contract-meta">
+            <i style="background-image:url('${ART_PATH}overlays/${OBJECTIVE_ART[contract.battleObjective]}.webp')"></i>
+            <span>${OBJECTIVE_LABEL[contract.battleObjective]}</span>
+            <em>·</em>
+            <img src="${ART_PATH}icons/resources/crowns.webp" alt="crowns">
+            <span>${contract.reward}</span>
+            <em>·</em>
+            <img src="${ART_PATH}icons/resources/renown.webp" alt="renown">
+            <span>+${contract.danger * 3}</span>
+          </span>
+        </span>`;
+      return atHome
+        ? `<button class="ip-contract" data-accept-contract="${contract.id}">${body}</button>`
+        : `<div class="ip-contract distant">${body}</div>`;
+    };
+
     return `<div class="ip-map" data-screen-label="Frontier Map">
       <div class="ip-map-stage" aria-label="Frontier travel map">
         <img class="ip-map-art" src="${ART_PATH}scenes/event-black-storm.webp" alt="">
         <div class="ip-map-veil"></div>
         <div class="ip-map-vignette"></div>
         <div class="ip-map-heading"><b>THE FRONTIER</b><span>Choose where the company marches next.</span></div>
-        <svg class="ip-roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${l.join("")}</svg>
-        ${d}
+        <svg class="ip-roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${roads.join("")}</svg>
+        ${nodes}
       </div>
       <aside class="ip-dossier">
         <div class="ip-dossier-head">
-          <div class="ip-dossier-eyebrow">LOCATION ${n.numeral} — ${n.faction}</div>
-          <h2>${escapeHtml(a.name.toUpperCase())}</h2>
-          <p class="ip-dossier-desc">${escapeHtml(a.description)}</p>
-          <div class="ip-services">${b.length ? b.join("") : '<span class="ip-service">NO SERVICES</span>'}</div>
+          <div class="ip-dossier-eyebrow">LOCATION ${node.numeral} — ${node.faction}</div>
+          <h2>${escapeHtml(selected.name.toUpperCase())}</h2>
+          <p class="ip-dossier-desc">${escapeHtml(selected.description)}</p>
+          <div class="ip-services">${services.length ? services.join("") : '<span class="ip-service">NO SERVICES</span>'}</div>
         </div>
         <div class="ip-dossier-divider"></div>
         <div class="ip-dossier-body">
-          <div class="ip-dossier-label">CONTRACTS OFFERED</div>
+          <div class="ip-dossier-label">${atHome ? "CONTRACTS OFFERED" : "CONTRACTS POSTED"}</div>
           ${
-            a.id === t.id
-              ? e.contracts.length
-                ? `<div class="ip-contract-list">${e.contracts
-                    .map(
-                      (
-                        c,
-                      ) => `<button class="ip-contract" data-accept-contract="${c.id}">
-                  <span class="ip-contract-seal" style="--ip-emblem:url('${ART_PATH}emblems/${c.enemyFaction}.webp')"></span>
-                  <span class="ip-contract-text">
-                    <span class="ip-contract-title">${escapeHtml(c.title)}</span>
-                    <span class="ip-contract-meta">
-                      <i style="background-image:url('${ART_PATH}overlays/${OBJECTIVE_ART[c.battleObjective]}.webp')"></i>
-                      <span>${OBJECTIVE_LABEL[c.battleObjective]}</span>
-                      <em>·</em>
-                      <img src="${ART_PATH}icons/resources/crowns.webp" alt="crowns">
-                      <span>${c.reward}</span>
-                      <em>·</em>
-                      <img src="${ART_PATH}icons/resources/renown.webp" alt="renown">
-                      <span>+${c.danger * 3}</span>
-                    </span>
-                  </span>
-                </button>`,
-                    )
-                    .join("")}</div>`
-                : '<p class="ip-dossier-empty">No work is posted here today. Rest a day or settle a contract elsewhere.</p>'
-              : '<p class="ip-dossier-empty">Contracts are only posted to a company that stands in the town.</p>'
+            offered.length
+              ? `<div class="ip-contract-list">${offered.map(contractCard).join("")}</div>
+                 ${atHome ? "" : '<p class="ip-dossier-footnote">Terms are settled when the company arrives.</p>'}`
+              : `<p class="ip-dossier-empty">${
+                  atHome
+                    ? "No work is posted here today. Rest a day or settle a contract elsewhere."
+                    : "Nothing is posted here yet."
+                }</p>`
           }
+          <div class="ip-dossier-label standing-label">STANDING</div>
+          <div class="ip-standing-list">${standing}</div>
         </div>
         <div class="ip-dossier-foot">
-          <button class="ip-march" ${y ? `data-travel="${a.id}"` : "disabled"}>${p}</button>
-          <div class="ip-march-note">${f}</div>
+          <button class="ip-march" ${marchTo ? `data-travel="${marchTo}"` : "disabled"}>${marchLabel}</button>
+          <div class="ip-march-note">${marchNote}</div>
         </div>
       </aside>
     </div>`;

@@ -17,6 +17,26 @@ class FakeElement {
     this.innerHTML = "";
     this.listeners = new Map();
     this.label = { textContent: "" };
+    this.parentElement = null;
+    this.children = [];
+    this.classNames = new Set();
+    this.classList = {
+      toggle: (name, on) =>
+        on ? this.classNames.add(name) : this.classNames.delete(name),
+      contains: (name) => this.classNames.has(name),
+    };
+  }
+
+  append(...elements) {
+    for (const element of elements) {
+      element.parentElement?.remove?.(element);
+      element.parentElement = this;
+      this.children.push(element);
+    }
+  }
+
+  remove(element) {
+    this.children = this.children.filter((child) => child !== element);
   }
 
   addEventListener(type, listener) {
@@ -71,12 +91,26 @@ function createHarness({
 
   const appended = [];
   const documentListeners = new Map();
+  const observers = [];
+  let slot = null;
+
+  class FakeBody extends FakeElement {
+    constructor() {
+      super("body");
+    }
+
+    append(...elements) {
+      appended.push(...elements);
+      super.append(...elements);
+    }
+  }
+
+  const body = new FakeBody();
   const document = {
     hidden: false,
-    body: {
-      append(...elements) {
-        appended.push(...elements);
-      },
+    body,
+    querySelector(selector) {
+      return selector === "[data-music-slot]" ? slot : null;
     },
     createElement(tagName) {
       return tagName === "audio" ? new FakeAudio() : new FakeElement(tagName);
@@ -91,6 +125,15 @@ function createHarness({
   const context = vm.createContext({
     document,
     Element: FakeElement,
+    requestAnimationFrame(callback) {
+      callback();
+    },
+    MutationObserver: class {
+      constructor(callback) {
+        observers.push(callback);
+      }
+      observe() {}
+    },
     window: {
       localStorage: {
         getItem(key) {
@@ -113,6 +156,11 @@ function createHarness({
     },
     emitDocument(type, event) {
       for (const listener of documentListeners.get(type) ?? []) listener(event);
+    },
+    body,
+    setSlot(next) {
+      slot = next;
+      for (const observer of observers) observer();
     },
   };
 }
@@ -146,6 +194,27 @@ disabled.toggle.emit("click");
 assert.equal(disabled.audio.paused, true);
 assert.equal(disabled.storage.get("iron-price-music-enabled"), "off");
 
+// The control docks into whichever screen offers a slot and floats free again
+// when the next screen does not.
+const docking = createHarness();
+await flushPromises();
+assert.equal(docking.toggle.parentElement, docking.body);
+assert.equal(docking.toggle.classList.contains("music-toggle--docked"), false);
+
+const slot = new FakeElement("span");
+docking.setSlot(slot);
+assert.equal(docking.toggle.parentElement, slot);
+assert.equal(docking.toggle.classList.contains("music-toggle--docked"), true);
+
+// A re-render that keeps the same slot must not move the control again.
+const before = slot.children.length;
+docking.setSlot(slot);
+assert.equal(slot.children.length, before);
+
+docking.setSlot(null);
+assert.equal(docking.toggle.parentElement, docking.body);
+assert.equal(docking.toggle.classList.contains("music-toggle--docked"), false);
+
 console.log(
-  "Verified music autoplay, gesture fallback, and persistent toggle.",
+  "Verified music autoplay, gesture fallback, persistent toggle, and docking.",
 );
