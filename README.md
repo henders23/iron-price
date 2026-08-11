@@ -9,32 +9,24 @@ The current build assumes:
 - Deterministic, shareable battles whose rules run independently of the renderer.
 - No live PvP in the MVP. It remains a possible later mode, not a foundation the campaign must carry.
 
-## Planning documents
-
-- [Master game and production plan](docs/IRON_PRICE_GAME_PLAN.md)
-- [Screen and asset register](docs/SCREEN_ASSET_REGISTER.md)
-- [Product decisions and open questions](docs/DECISIONS.md)
-
 ## Campaign Run v1
 
 A finite mercenary-company campaign around deterministic 6-versus-6 battles. Found a company, cross a seven-location frontier, manage rising threat and local reputations, make road decisions, improve fighters and equipment, complete varied contracts, and reach victory or one of several company-ending defeats.
 
 ## Play Iron Price
 
-Requirements: Node.js 20 or newer.
+Requirements: Node.js 20.19 or newer.
 
-```powershell
-npm.cmd install
-npm.cmd run dev
+```sh
+npm install
+npm run dev
 ```
 
 Open `http://127.0.0.1:4173/`.
 
-Alternatively, open `Iron Price.html` directly. The game uses the checked-in `assets/art` folder for narrative scenes, equipment and resource icons, faction emblems, and tactical overlays. Build the static deployment with:
+You can also open `index.html` directly. `Iron Price.html` remains as a small compatibility launcher for older links.
 
-```powershell
-npm.cmd run build:html
-```
+The theme music attempts to play when the game opens. Browsers that block audible autoplay start it on the first click or key press instead. The fixed music control turns playback on or off and remembers the preference in local storage.
 
 Battle controls:
 
@@ -71,14 +63,30 @@ Battle controls:
 - Seeded command replay verified against a final state hash.
 - Responsive campaign and battle layouts tested at 1440x900 and 1280x720.
 
-## Verification
+## Development workflow
 
-```powershell
-npm.cmd test
-npm.cmd run build
+```sh
+npm install          # install Vite and formatting tools
+npm run dev          # local development server
+npm test             # syntax, asset, audio, and entry-point checks
+npm run format       # format source and configuration files
+npm run build        # create the static dist/ deployment
+npm run preview      # preview a completed build
 ```
 
-The repository currently contains the compiled browser game rather than its original TypeScript source tree. `npm test` verifies the 52-file art manifest and every runtime integration hook. `npm run build` copies the playable build and optimized assets into `dist/`.
+The repository contains a formatted JavaScript recovery of the previous self-contained browser build rather than its original TypeScript module tree. Core game logic currently lives in `src/game.js`; it can be split into domain modules incrementally without changing the asset or music runtimes.
+
+## Repository layout
+
+- `index.html`: canonical game entry point.
+- `src/game.js`: campaign and tactical game runtime.
+- `src/game.css`: core game presentation.
+- `src/art-runtime.js` and `src/art.css`: generated-art UI integration.
+- `src/music-player.js` and `src/music-player.css`: theme playback and persistent toggle.
+- `assets/art`: optimized narrative, equipment, faction, and tactical art.
+- `assets/audio/iron-price-theme.mp3`: looping theme music.
+- `scripts/build-static.mjs`: reproducible static deployment builder.
+- `scripts/verify-static.mjs`: repository integrity checks.
 
 ## Art integration
 
@@ -88,5 +96,3 @@ The repository currently contains the compiled browser game rather than its orig
 - `assets/art/emblems`: company, reputation, enemy-faction, and frontier-compact marks.
 - `assets/art/overlays`: deployment, movement, selection, activation, targeting, captain, hold, and escape markers used by the Canvas battle renderer.
 - `assets/art/manifest.json`: canonical asset register.
-
-The UI integration is handled by `assets/art/runtime.js` and `assets/art/art.css`. The tactical Canvas hooks are applied to the compiled build by `scripts/integrate-art.mjs`.
