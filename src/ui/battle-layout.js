@@ -8,6 +8,26 @@ export const HEX_MIN_SIZE = 14;
 export const HEX_MAX_SIZE = 122;
 export const MAP_PADDING = { x: 22, y: 18 };
 
+// Conservative canvas limits. Browsers silently refuse to paint a canvas whose
+// backing store is larger than they allow — Safari well before Chrome — and a
+// blank battlefield is the worst way to find that out, so the device pixel
+// ratio gives way on very large boards.
+export const MAX_CANVAS_SIDE = 8192;
+export const MAX_CANVAS_PIXELS = 16 * 1024 * 1024;
+
+export function canvasBackingRatio(width, height, deviceRatio = 1) {
+  return Math.max(
+    0.5,
+    Math.min(
+      deviceRatio > 0 ? deviceRatio : 1,
+      2,
+      MAX_CANVAS_SIDE / width,
+      MAX_CANVAS_SIDE / height,
+      Math.sqrt(MAX_CANVAS_PIXELS / (width * height)),
+    ),
+  );
+}
+
 // A pointy-top hex at axial (q, r) sits at x = SQRT3 * size * (q + r / 2) and
 // y = 1.5 * size * r, so the horizontal span is measured in hex widths and the
 // vertical span in hex radii.

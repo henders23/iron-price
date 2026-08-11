@@ -62,6 +62,8 @@ summary:focus-visible {
 .game-shell {
   position: relative;
   display: grid;
+  /* Dragging across the board is a map gesture, not a text selection. */
+  user-select: none;
   grid-template-rows: 72px 58px minmax(0, 1fr) 104px;
   width: 100%;
   height: 100%;
@@ -352,11 +354,16 @@ summary:focus-visible {
 .battle-viewport {
   position: absolute;
   inset: 0;
-  overflow: auto;
+  /* The board fits at 100%, so scrollbars only exist once the player zooms in.
+     Leaving them on would let a scrollbar resize the box that sizes it. */
+  overflow: hidden;
   overscroll-behavior: contain;
   scrollbar-color: #776b4f #171b19;
   scrollbar-width: thin;
   outline: none;
+}
+.battle-viewport.zoomed {
+  overflow: auto;
 }
 .battle-viewport:focus-visible {
   box-shadow: inset 0 0 0 2px rgba(221, 190, 105, 0.72);
@@ -849,6 +856,8 @@ summary {
 }
 .combat-log {
   height: calc(100% - 26px);
+  /* The ledger is the one part of the battle worth copying out of. */
+  user-select: text;
   overflow-y: auto;
   scrollbar-color: #5a513e #151718;
   scrollbar-width: thin;

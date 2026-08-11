@@ -1,7 +1,11 @@
 import { drawArt } from "../art/canvas-art.js";
 import { hexKey, sameHex, unitAt } from "../battle/hex.js";
 import { TERRAIN } from "../battle/weapons.js";
-import { SQRT3, battlefieldLayout } from "./battle-layout.js";
+import {
+  SQRT3,
+  battlefieldLayout,
+  canvasBackingRatio,
+} from "./battle-layout.js";
 import { armorTint, drawPortraitMedallion, shiftColor } from "./portrait.js";
 
 export { SQRT3, shiftColor };
@@ -149,17 +153,30 @@ export class BattleRenderer {
       offset: r,
     });
   }
+  // Measuring the canvas before the layout settles reports a box of no useful
+  // size. Baking that in would leave a one-pixel battlefield that nothing ever
+  // resizes again, so the last good size is kept until a real box arrives.
   resize() {
     const e = this.canvas.getBoundingClientRect();
-    ((this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2)),
-      (this.width = Math.max(1, e.width)),
-      (this.height = Math.max(1, e.height)),
-      (this.canvas.width = Math.floor(this.width * this.pixelRatio)),
-      (this.canvas.height = Math.floor(this.height * this.pixelRatio)),
+    if (e.width < 2 || e.height < 2) return;
+    ((this.width = e.width), (this.height = e.height));
+    const t = canvasBackingRatio(
+        this.width,
+        this.height,
+        window.devicePixelRatio || 1,
+      ),
+      a = Math.floor(this.width * t),
+      i = Math.floor(this.height * t);
+    // Only reallocate when the backing store actually changes: assigning
+    // canvas.width clears the canvas, and a resize that lands after a frame is
+    // drawn would leave the player looking at an empty battlefield.
+    ((this.canvas.width === a && this.canvas.height === i) ||
+      ((this.canvas.width = a), (this.canvas.height = i)),
+      (this.pixelRatio = a / this.width),
       this.context.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0));
-    const a = battlefieldLayout(this.state?.tiles, this.width, this.height);
-    ((this.size = a.size),
-      (this.origin = a.origin),
+    const n = battlefieldLayout(this.state?.tiles, this.width, this.height);
+    ((this.size = n.size),
+      (this.origin = n.origin),
       (this.layoutTiles = this.state?.tiles.length ?? 0));
   }
   handlePointer(e, t) {

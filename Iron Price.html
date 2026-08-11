@@ -3,10 +3,59 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="refresh" content="0; url=./index.html" />
+    <meta name="theme-color" content="#121416" />
+    <meta http-equiv="refresh" content="0; url=./dist/index.html" />
     <title>Launch Iron Price</title>
+    <style>
+      body {
+        margin: 0;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        color: #e6dcc4;
+        background: #14181a;
+        font:
+          15px/1.6 Georgia,
+          serif;
+        text-align: center;
+      }
+      main {
+        max-width: 34rem;
+        padding: 2rem;
+      }
+      h1 {
+        margin: 0 0 0.5rem;
+        letter-spacing: 0.12em;
+        font-size: 1.4rem;
+      }
+      a {
+        color: #f0cd73;
+      }
+      code {
+        color: #cfe3e0;
+        font-family: ui-monospace, monospace;
+      }
+      p.note {
+        color: #9a9484;
+        font-size: 13px;
+      }
+    </style>
   </head>
   <body>
-    <p><a href="./index.html">Launch Iron Price</a></p>
+    <main>
+      <h1>IRON PRICE</h1>
+      <!--
+        The playable copy off disk is the build in dist/: browsers refuse to load
+        the ES modules that index.html points at over file://, so linking this
+        launcher at the source entry opens a blank page.
+      -->
+      <p><a href="./dist/index.html">Launch Iron Price</a></p>
+      <p class="note">
+        This launcher opens the built copy in <code>dist/</code>. If the link
+        does not open the game, build it once with <code>npm install</code> then
+        <code>npm run build</code>. For development, run
+        <code>npm run dev</code> and open the address it prints.
+      </p>
+    </main>
   </body>
 </html>

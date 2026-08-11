@@ -8,6 +8,7 @@ import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { build } from "vite";
+import { BUILT_LAUNCHER } from "./launcher.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const output = join(root, "dist");
@@ -48,7 +49,8 @@ for (const file of [
 }
 
 await cp(join(root, "assets"), join(output, "assets"), { recursive: true });
-await cp(join(root, "Iron Price.html"), join(output, "Iron Price.html"));
+
+await writeFile(join(output, "Iron Price.html"), BUILT_LAUNCHER);
 
 const indexHtml = await readFile(join(root, "index.html"), "utf8");
 if (!indexHtml.includes(MODULE_TAG)) {

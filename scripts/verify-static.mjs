@@ -1,6 +1,7 @@
 import { access, open, readFile, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
+import { BUILT_LAUNCHER, ROOT_LAUNCHER_TARGET } from "./launcher.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const artRoot = join(root, "assets/art");
@@ -8,7 +9,7 @@ const manifest = JSON.parse(
   await readFile(join(artRoot, "manifest.json"), "utf8"),
 );
 const indexHtml = await readFile(join(root, "index.html"), "utf8");
-const legacyHtml = await readFile(join(root, "Iron Price.html"), "utf8");
+const launcherHtml = await readFile(join(root, "Iron Price.html"), "utf8");
 const battleRenderer = await readFile(
   join(root, "src/ui/battle-renderer.js"),
   "utf8",
@@ -91,8 +92,18 @@ for (const reference of entryReferences) {
   }
 }
 
-if (!legacyHtml.includes("./index.html")) {
-  throw new Error("The legacy launcher does not redirect to index.html.");
+// The root launcher must point at the built copy: index.html loads ES modules,
+// which browsers refuse to run over file://, so a launcher aimed at the source
+// entry opens a blank page for anyone opening the game off disk.
+if (!launcherHtml.includes(ROOT_LAUNCHER_TARGET)) {
+  throw new Error(
+    `The launcher does not point at the built copy (${ROOT_LAUNCHER_TARGET}).`,
+  );
+}
+if (!BUILT_LAUNCHER.includes("url=./index.html")) {
+  throw new Error(
+    "The launcher written into dist/ does not redirect to its sibling index.html.",
+  );
 }
 
 for (const overlay of manifest.overlays) {

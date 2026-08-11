@@ -9,9 +9,12 @@ import { buildBattlefield } from "../src/battle/battlefields.js";
 import { createBattleState } from "../src/battle/state.js";
 import {
   HEX_MIN_SIZE,
+  MAX_CANVAS_PIXELS,
+  MAX_CANVAS_SIDE,
   SQRT3,
   battlefieldBounds,
   battlefieldLayout,
+  canvasBackingRatio,
 } from "../src/ui/battle-layout.js";
 import { armorTint, portraitTraits } from "../src/ui/portrait.js";
 
@@ -77,6 +80,45 @@ test("bounds cover the whole grid and survive an empty board", () => {
   assert.deepEqual(bounds, { minAxis: 0, maxAxis: 11.5, minRow: 0, maxRow: 9 });
   const fallback = battlefieldLayout([], 1129, 666);
   assert.ok(fallback.size > HEX_MIN_SIZE);
+});
+
+test("the canvas backing store stays inside what browsers will paint", () => {
+  const boards = [
+    [1679, 696, 1],
+    [1679, 696, 2],
+    [2249, 846, 2],
+    [3129, 1206, 2],
+    [4809, 1206, 2],
+    [7680, 2160, 3],
+  ];
+  for (const [width, height, deviceRatio] of boards) {
+    const ratio = canvasBackingRatio(width, height, deviceRatio);
+    const backing = [Math.floor(width * ratio), Math.floor(height * ratio)];
+    assert.ok(
+      backing[0] <= MAX_CANVAS_SIDE && backing[1] <= MAX_CANVAS_SIDE,
+      `${width}x${height}@${deviceRatio} exceeds the per-side limit: ${backing}`,
+    );
+    assert.ok(
+      backing[0] * backing[1] <= MAX_CANVAS_PIXELS,
+      `${width}x${height}@${deviceRatio} exceeds the area limit: ${backing}`,
+    );
+    assert.ok(ratio > 0, "the board would have no backing store at all");
+  }
+  assert.equal(
+    canvasBackingRatio(1129, 666, 1),
+    1,
+    "a plain display lost crispness",
+  );
+  assert.equal(
+    canvasBackingRatio(1129, 666, 2),
+    2,
+    "a retina display lost crispness",
+  );
+  assert.equal(
+    canvasBackingRatio(1129, 666, 4),
+    2,
+    "the ratio is not capped at 2",
+  );
 });
 
 test("a fighter's portrait is stable and personal", () => {

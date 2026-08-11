@@ -140,12 +140,21 @@ export class BattleScreen {
       this.mapResizeObserver.observe(e),
       this.resizeMapSurface());
   }
+  // At 100% the surface is exactly the viewport, and CSS holds it there. Sizing
+  // it from clientWidth instead would fight the scrollbars it creates: a
+  // fractional client box makes the surface a hair too large, the scrollbar
+  // that appears shrinks the client box, and the viewport flickers between the
+  // two while every measurement re-sizes — and so clears — the canvas.
   resizeMapSurface() {
     if (!this.mapViewport || !this.mapSurface) return;
-    const e = Math.max(1, this.mapViewport.clientWidth),
-      t = Math.max(1, this.mapViewport.clientHeight);
-    ((this.mapSurface.style.width = `${Math.round(e * this.mapZoom)}px`),
-      (this.mapSurface.style.height = `${Math.round(t * this.mapZoom)}px`));
+    if (this.mapZoom > 1) {
+      const e = Math.max(1, this.mapViewport.clientWidth),
+        t = Math.max(1, this.mapViewport.clientHeight);
+      ((this.mapSurface.style.width = `${Math.floor(e * this.mapZoom)}px`),
+        (this.mapSurface.style.height = `${Math.floor(t * this.mapZoom)}px`));
+    } else
+      ((this.mapSurface.style.width = ""), (this.mapSurface.style.height = ""));
+    this.mapViewport.classList.toggle("zoomed", this.mapZoom > 1);
     const a = document.querySelector("#map-zoom-value"),
       i = document.querySelector("#map-zoom-out"),
       n = document.querySelector("#map-zoom-in");
