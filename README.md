@@ -60,11 +60,19 @@ Battle controls:
 
 ## Screen presentation
 
-The title screen and the frontier map share one visual language, defined in
-`src/screens.css`: aged gold `#c39d4f` on `#0b0d0e`, square corners
-everywhere except the circular map nodes, Cinzel for headings and labels,
-IM Fell English for flavour text, and Jost for the wordmark. Accessibility
-options set from the title screen are stored globally under
+Every screen shares one visual language, defined in `src/screens.css`: aged
+gold `#c39d4f` on `#0b0d0e`, square corners everywhere except the circular map
+nodes and portraits, Cinzel for headings and labels, IM Fell English for
+flavour text, and Jost for the wordmark. The file redefines the older palette
+tokens first, so the campaign views, the screens either side of a battle, and
+the battle chrome all move together; the battlefield itself keeps its own
+colours for readability.
+
+The music control docks into whichever screen offers a `data-music-slot` —
+the campaign top bar, the battle meta strip, the deployment header, the title
+footer — and floats in the corner only where no screen has room for it.
+
+Accessibility options set from the title screen are stored globally under
 `iron-price-display-v1`, applied to the document root, and copied into each
 new company; a running campaign then keeps its own copy.
 

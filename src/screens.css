@@ -1466,3 +1466,449 @@ button.ip-service:hover {
 .large-text .ip-menu-button {
   font-size: 17px;
 }
+
+/* ======================================================= campaign screens ==
+   The frontier map and title screen set the house style; these rules carry it
+   through the rest of the campaign — roster, contract board, market, hiring
+   ground, chronicle and the screens either side of a battle. The legacy tokens
+   are redefined first, which moves every panel, rule and accent onto the new
+   palette in one step; what follows is typography and shape. */
+
+:root {
+  --black: #0b0d0e;
+  --near-black: #101314;
+  --iron: #1b1f22;
+  --iron-light: #39424a;
+  --bone: #e6d7b8;
+  --muted: rgba(196, 188, 173, 0.6);
+  --parchment: #c4bcad;
+  --brass: #c39d4f;
+  --brass-light: #e6d7b8;
+  --oxblood: #7a2a24;
+  --rust: #8a4a42;
+  --moss: #7d8a6a;
+  --company: #2f3a3d;
+  --line: rgba(230, 215, 184, 0.14);
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+
+.campaign-shell,
+.new-campaign-screen,
+.settings-screen,
+.tutorial-screen,
+.squad-screen,
+.aftermath-screen,
+.ending-screen {
+  background: var(--ip-ink);
+}
+
+/* -- headings ------------------------------------------------------------- */
+
+.campaign-content h2,
+.campaign-content h3,
+.campaign-sidebar h2,
+.new-campaign-screen h1,
+.new-campaign-screen h2,
+.settings-screen h1,
+.tutorial-screen h1,
+.tutorial-screen h2,
+.squad-screen h1,
+.aftermath-screen h1,
+.aftermath-screen h2,
+.ending-screen h1 {
+  font-family: var(--ip-serif);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--ip-parchment);
+}
+
+.content-heading h2,
+.new-campaign-screen h1,
+.settings-screen h1,
+.tutorial-screen h1,
+.squad-screen h1 {
+  letter-spacing: 0.03em;
+}
+
+.eyebrow,
+.section-label span,
+.slot-number,
+.heading-stat span,
+.contract-facts span,
+.recruit-stats span,
+.fighter-stats span,
+.ending-stats span,
+.aftermath-numbers span,
+.new-summary span,
+.squad-count span,
+.campaign-nav span,
+.camp-actions .eyebrow {
+  font-family: var(--ip-serif);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.eyebrow,
+.section-label span {
+  color: var(--ip-gold);
+}
+
+/* -- flavour text --------------------------------------------------------- */
+
+.campaign-content p,
+.location-dossier p,
+.recruit-card p,
+.contract-card p,
+.market-card p,
+.empty-state p,
+.new-campaign-screen p,
+.settings-screen p,
+.tutorial-screen p,
+.ending-screen p,
+.aftermath-screen p,
+.event-paper p,
+.chronicle-list p {
+  font-family: var(--ip-flavor);
+  font-size: 1.25em;
+  line-height: 1.45;
+  color: var(--ip-body-text);
+}
+
+/* Supporting lines sit inside tight rows, so they take the face without the
+   size bump that body copy gets. */
+.camp-actions small,
+.settings-list small,
+.recruit-kit b,
+.hire-line small,
+.fighter-history span,
+.slot-facts span {
+  font-family: var(--ip-flavor);
+  font-size: 12.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ip-body-text);
+}
+
+/* Two number/label pairs in a 190px rail: stack each pair instead of fighting
+   for one line. */
+.readiness-summary {
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  text-align: center;
+}
+
+.readiness-summary span {
+  font-family: var(--ip-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ip-gold);
+}
+
+.readiness-summary small {
+  font-family: var(--ip-serif);
+  font-size: 7.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.campaign-message,
+blockquote {
+  font-family: var(--ip-flavor);
+  font-style: italic;
+}
+
+/* -- numbers -------------------------------------------------------------- */
+
+.heading-stat b,
+.contract-facts b,
+.recruit-stats b,
+.fighter-stats b,
+.ending-stats b,
+.aftermath-numbers b,
+.new-summary b,
+.squad-count b,
+.hire-line b,
+.market-card b,
+.readiness-summary span {
+  font-family: var(--ip-serif);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.heading-stat b {
+  color: var(--ip-gold);
+}
+
+/* -- cards and panels ----------------------------------------------------- */
+
+.contract-card,
+.recruit-card,
+.market-card,
+.origin-card,
+.roster-grid > button,
+.fighter-sheet,
+.chronicle-list article,
+.grave-ledger,
+.new-campaign-card,
+.settings-card,
+.tutorial-book,
+.aftermath-paper,
+.ending-card,
+.event-paper,
+.squad-list > button {
+  border-radius: 0;
+}
+
+.contract-card,
+.recruit-card,
+.market-card,
+.chronicle-list article,
+.roster-grid > button,
+.squad-list > button {
+  border: 1px solid rgba(230, 215, 184, 0.12);
+  background: rgba(11, 13, 14, 0.5);
+  transition: all 0.18s ease;
+}
+
+.contract-card:hover,
+.recruit-card:hover,
+.market-card:hover,
+.roster-grid > button:hover,
+.squad-list > button:hover {
+  border-color: rgba(195, 157, 79, 0.6);
+  background: rgba(195, 157, 79, 0.05);
+}
+
+.fighter-sheet,
+.grave-ledger,
+.new-campaign-card,
+.settings-card,
+.tutorial-book,
+.aftermath-paper,
+.ending-card {
+  border: 1px solid var(--ip-gold-line);
+  background: linear-gradient(
+    180deg,
+    var(--ip-panel-top),
+    var(--ip-panel-bottom)
+  );
+}
+
+/* -- buttons -------------------------------------------------------------- */
+
+.primary-button {
+  border-radius: 0;
+  border: 1px solid rgba(195, 157, 79, 0.7);
+  background: linear-gradient(180deg, var(--ip-gold), var(--ip-gold-deep));
+  color: #12100a;
+  font-family: var(--ip-serif);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  transition: filter 0.18s ease;
+}
+
+.primary-button:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+.primary-button:disabled {
+  opacity: 0.45;
+}
+
+.secondary-button,
+.back-button,
+.text-button,
+.title-quiet-button {
+  border-radius: 0;
+  font-family: var(--ip-serif);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.secondary-button {
+  border: 1px solid rgba(230, 215, 184, 0.16);
+  background: rgba(11, 13, 14, 0.4);
+  color: var(--ip-parchment);
+}
+
+.secondary-button:hover {
+  border-color: rgba(195, 157, 79, 0.7);
+  background: rgba(195, 157, 79, 0.07);
+}
+
+.camp-actions > button,
+.settings-list button,
+.perk-choices button,
+.armory-options button {
+  border-radius: 0;
+}
+
+/* -- portraits ------------------------------------------------------------ */
+
+.roster-portrait,
+.recruit-portrait,
+.large-portrait,
+.readiness-ring {
+  border: 1px solid rgba(195, 157, 79, 0.45);
+  background: radial-gradient(
+    circle,
+    rgba(23, 26, 27, 0.95),
+    rgba(23, 26, 27, 0.5)
+  );
+  color: var(--ip-parchment);
+  font-family: var(--ip-serif);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* -- form controls -------------------------------------------------------- */
+
+.market-target select,
+.company-name-field input {
+  border-radius: 0;
+  border: 1px solid rgba(230, 215, 184, 0.18);
+  background: rgba(11, 13, 14, 0.6);
+  color: var(--ip-parchment);
+  font-family: var(--ip-serif);
+  letter-spacing: 0.04em;
+}
+
+.market-target select:focus,
+.company-name-field input:focus {
+  border-color: rgba(195, 157, 79, 0.7);
+  outline: none;
+}
+
+/* -- empty states --------------------------------------------------------- */
+
+.empty-state {
+  border-radius: 0;
+  border: 1px dashed rgba(230, 215, 184, 0.16);
+  background: rgba(11, 13, 14, 0.4);
+}
+
+/* The back link sits above the screen's title rather than running into it. */
+.back-button {
+  display: block;
+  width: fit-content;
+  margin-bottom: 14px;
+  padding: 5px 0;
+  color: rgba(196, 188, 173, 0.7);
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  color: var(--ip-parchment);
+}
+
+.squad-header .back-button {
+  margin-bottom: 0;
+}
+
+/* The docked music control takes a fourth column rather than a second row. */
+.squad-header {
+  grid-template-columns: 200px 1fr 120px auto;
+  gap: 20px;
+}
+
+.squad-header,
+.squad-footer,
+.aftermath-screen .squad-footer {
+  border-color: var(--ip-gold-line);
+  background: linear-gradient(
+    180deg,
+    var(--ip-panel-top),
+    var(--ip-panel-bottom)
+  );
+}
+
+/* -- battle screen -------------------------------------------------------- */
+/* The battlefield keeps its own colour language for readability; only the
+   chrome around it moves onto the house type. */
+
+.brand-block h1,
+.mission-block strong,
+.unit-heading h2,
+.panel-heading,
+.rail-label,
+.phase-banner,
+.briefing-card h2,
+.help-card h2,
+.result-card h2,
+.stat-grid b,
+.battle-meta strong {
+  font-family: var(--ip-serif);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.brand-block h1,
+.panel-heading,
+.rail-label,
+.battle-meta span,
+.stat-grid span,
+.resource-row span,
+.legend {
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Full sentences, not labels. */
+.dock-hint,
+.deployment-note {
+  font-family: var(--ip-flavor);
+  font-size: 13px;
+  font-style: italic;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.mission-block .eyebrow,
+.panel-heading,
+.rail-label {
+  font-family: var(--ip-serif);
+  font-weight: 600;
+}
+
+.flavour,
+.terrain-read,
+.deployment-note,
+.combat-log p,
+.briefing-card p,
+.help-card p,
+.result-card p,
+.unit-heading span,
+.equipment-row span {
+  font-family: var(--ip-flavor);
+  font-style: italic;
+}
+
+.briefing-card h2,
+.help-card h2,
+.result-card h2 {
+  letter-spacing: 0.03em;
+}
+
+.modal-card,
+.briefing-card,
+.help-card,
+.result-card {
+  border-radius: 0;
+}
+
+.action-button,
+.icon-button {
+  border-radius: 0;
+  font-family: var(--ip-serif);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}

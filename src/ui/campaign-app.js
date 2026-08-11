@@ -879,7 +879,7 @@ export class CampaignApp {
       n = () => {
         ((document.querySelector("#app").innerHTML =
           `<main class="squad-screen">
-      <header class="squad-header"><button id="back-to-contracts" class="back-button">← Contract board</button><div><span class="eyebrow">DEPLOYMENT ROSTER</span><h1>${escapeHtml(e.title)}</h1></div><div class="squad-count"><span>SELECTED</span><b>${i.size}/6</b></div></header>
+      <header class="squad-header" data-music-slot><button id="back-to-contracts" class="back-button">← Contract board</button><div><span class="eyebrow">DEPLOYMENT ROSTER</span><h1>${escapeHtml(e.title)}</h1></div><div class="squad-count"><span>SELECTED</span><b>${i.size}/6</b></div></header>
       <section class="squad-brief"><div><span>EMPLOYER</span><b>${escapeHtml(e.employer)}</b></div><div><span>OBJECTIVE</span><b>${escapeHtml(e.objective)}</b></div><div><span>TERRAIN</span><b>${escapeHtml(e.terrainLabel)}</b></div><div><span>PAYMENT</span><b>${e.reward} crowns</b></div><div><span>DANGER</span><b>${"◆".repeat(e.danger)}${"◇".repeat(3 - e.danger)}</b></div></section>
       <section class="squad-list">${a
         .map(
