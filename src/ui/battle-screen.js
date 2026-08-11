@@ -22,6 +22,7 @@ import {
 import { MORALE_LADDER, TERRAIN, WEAPONS } from "../battle/weapons.js";
 import { BattleRenderer } from "./battle-renderer.js";
 import { renderBattleShell } from "./battle-template.js";
+import { portraitBadge } from "./portrait.js";
 
 export class BattleScreen {
   state;
@@ -460,8 +461,9 @@ export class BattleScreen {
       .map((t, a) => {
         const i = this.state.units.find((r) => r.id === t),
           n = (i.headArmor + i.bodyArmor) / (i.headArmorMax + i.bodyArmorMax);
+        const o = portraitBadge(i, 28);
         return `<button class="turn-token ${i.team} ${a === 0 ? "active" : ""}" data-inspect="${i.id}" title="${i.name}">
-      <span class="token-initial">${i.name.charAt(0)}</span><span class="token-bars"><i style="--fill:${i.hp / i.hpMax}"></i><i style="--fill:${n}"></i></span><small>${a + 1}</small>
+      <span class="token-initial"${o ? ` style="background-image:url('${o}')"` : ""}>${o ? "" : i.name.charAt(0)}</span><span class="token-bars"><i style="--fill:${i.hp / i.hpMax}"></i><i style="--fill:${n}"></i></span><small>${a + 1}</small>
     </button>`;
       })
       .join("")),
@@ -490,16 +492,18 @@ export class BattleScreen {
       return;
     }
     const a = WEAPONS[e.weaponId],
-      i = MORALE_LADDER.indexOf(e.morale);
+      i = MORALE_LADDER.indexOf(e.morale),
+      n = portraitBadge(e, 54);
     t.innerHTML = `
-    <div class="unit-heading"><div class="portrait-seal ${e.team}">${e.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .slice(
-        0,
-        2,
-      )}</div><div><span class="eyebrow">${e.team === "company" ? "IRON COMPANY" : (this.options.contract?.enemyFaction ?? "THORN REAVERS").replace("-", " ").toUpperCase()}</span><h2>${e.name}</h2><p>${e.epithet}</p></div></div>
+    <div class="unit-heading"><div class="portrait-seal ${e.team}"${n ? ` style="background-image:url('${n}')"` : ""}>${
+      n
+        ? ""
+        : e.name
+            .split(" ")
+            .map((r) => r[0])
+            .join("")
+            .slice(0, 2)
+    }</div><div><span class="eyebrow">${e.team === "company" ? "IRON COMPANY" : (this.options.contract?.enemyFaction ?? "THORN REAVERS").replace("-", " ").toUpperCase()}</span><h2>${e.name}</h2><p>${e.epithet}</p></div></div>
     <div class="resource-row"><span>Health</span><div class="meter health"><i style="width:${(e.hp / e.hpMax) * 100}%"></i></div><b>${e.hp}/${e.hpMax}</b></div>
     <div class="resource-row"><span>Head</span><div class="meter armor"><i style="width:${(e.headArmor / e.headArmorMax) * 100}%"></i></div><b>${e.headArmor}/${e.headArmorMax}</b></div>
     <div class="resource-row"><span>Body</span><div class="meter armor"><i style="width:${(e.bodyArmor / e.bodyArmorMax) * 100}%"></i></div><b>${e.bodyArmor}/${e.bodyArmorMax}</b></div>

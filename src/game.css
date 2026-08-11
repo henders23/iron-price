@@ -593,6 +593,17 @@ summary:focus-visible {
   border-color: #9d574e;
   background: radial-gradient(circle at 40% 30%, #8b4d46, #472925 65%);
 }
+/* The drawn portrait, when one is available, replaces the initials fallback. */
+.portrait-seal[style*="background-image"],
+.token-initial[style*="background-image"] {
+  background-color: transparent;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+.portrait-seal[style*="background-image"] {
+  box-shadow: 0 3px 8px #000;
+}
 .resource-row {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) 45px;

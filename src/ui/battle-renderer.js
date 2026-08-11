@@ -1,15 +1,10 @@
 import { drawArt } from "../art/canvas-art.js";
 import { hexKey, sameHex, unitAt } from "../battle/hex.js";
 import { TERRAIN } from "../battle/weapons.js";
+import { SQRT3, battlefieldLayout } from "./battle-layout.js";
+import { armorTint, drawPortraitMedallion, shiftColor } from "./portrait.js";
 
-export const SQRT3 = Math.sqrt(3);
-export function shiftColor(s, e) {
-  const t = Number.parseInt(s.slice(1), 16),
-    a = Math.max(0, Math.min(255, (t >> 16) + e)),
-    i = Math.max(0, Math.min(255, ((t >> 8) & 255) + e)),
-    n = Math.max(0, Math.min(255, (t & 255) + e));
-  return `rgb(${a}, ${i}, ${n})`;
-}
+export { SQRT3, shiftColor };
 export function easeInOutQuad(s) {
   return s < 0.5 ? 2 * s * s : 1 - Math.pow(-2 * s + 2, 2) / 2;
 }
@@ -30,6 +25,7 @@ export class BattleRenderer {
   pixelRatio = 1;
   size = 42;
   origin = { x: 0, y: 0 };
+  layoutTiles = 0;
   motion = null;
   floaters = [];
   particles = [];
@@ -38,6 +34,7 @@ export class BattleRenderer {
   onClick;
   resizeObserver;
   running = !0;
+  reportedFrameError = !1;
   constructor(e, t, a) {
     const i = e.getContext("2d");
     if (!i) throw new Error("Canvas 2D is unavailable.");
@@ -50,13 +47,17 @@ export class BattleRenderer {
       e.addEventListener("pointermove", (n) => this.handlePointer(n, !1)),
       e.addEventListener("pointerleave", () => this.onHover(null)),
       e.addEventListener("pointerdown", (n) => this.handlePointer(n, !0)),
+      this.resize(),
       requestAnimationFrame((n) => this.render(n)));
   }
   destroy() {
     ((this.running = !1), this.resizeObserver.disconnect());
   }
   setState(e, t = {}) {
-    ((this.state = e), (this.view = { ...this.view, ...t }));
+    const a = e.tiles.length !== this.layoutTiles;
+    ((this.state = e),
+      (this.view = { ...this.view, ...t }),
+      a && this.resize());
   }
   setView(e) {
     this.view = { ...this.view, ...e };
@@ -156,15 +157,10 @@ export class BattleRenderer {
       (this.canvas.width = Math.floor(this.width * this.pixelRatio)),
       (this.canvas.height = Math.floor(this.height * this.pixelRatio)),
       this.context.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0));
-    const t = (this.width - 54) / (12.5 * SQRT3),
-      a = (this.height - 58) / 14.3;
-    this.size = Math.max(25, Math.min(122, t, a));
-    const i = SQRT3 * this.size * 12.5,
-      n = this.size * 14.5;
-    this.origin = {
-      x: (this.width - i) / 2 + this.size * SQRT3 * 0.5,
-      y: (this.height - n) / 2 + this.size,
-    };
+    const a = battlefieldLayout(this.state?.tiles, this.width, this.height);
+    ((this.size = a.size),
+      (this.origin = a.origin),
+      (this.layoutTiles = this.state?.tiles.length ?? 0));
   }
   handlePointer(e, t) {
     if (!this.state) return;
@@ -197,8 +193,24 @@ export class BattleRenderer {
     }
     a.closePath();
   }
+  // One thrown frame must never end the animation loop: a battlefield that
+  // stops requesting frames reads to the player as a screen that never renders.
   render(e) {
     if (!this.running) return;
+    try {
+      this.drawFrame(e);
+    } catch (t) {
+      (this.reportedFrameError ||
+        ((this.reportedFrameError = !0),
+        console.error("Battlefield frame failed to draw.", t)),
+        // Drop any clip or transform the failed frame left behind.
+        this.context.reset
+          ? this.context.reset()
+          : (this.context.restore(), this.context.restore()));
+    }
+    requestAnimationFrame((t) => this.render(t));
+  }
+  drawFrame(e) {
     const t = this.context;
     (t.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0),
       t.clearRect(0, 0, this.width, this.height));
@@ -217,10 +229,8 @@ export class BattleRenderer {
       (t.fillStyle = a),
       t.fillRect(0, 0, this.width, this.height),
       !this.state)
-    ) {
-      requestAnimationFrame((n) => this.render(n));
+    )
       return;
-    }
     const i = e < this.shakeUntil ? Math.sin(e * 0.15) * 1.6 : 0;
     (t.save(),
       t.translate(i, 0),
@@ -237,8 +247,7 @@ export class BattleRenderer {
       (this.floaters = this.floaters.filter((n) => e < n.started + n.duration)),
       (this.particles = this.particles.filter(
         (n) => e < n.started + n.duration,
-      )),
-      requestAnimationFrame((n) => this.render(n)));
+      )));
   }
   drawTiles(e) {
     if (!this.state) return;
@@ -770,19 +779,7 @@ export class BattleRenderer {
           0.9,
         )));
     const m = e.team === "company" ? 1 : -1,
-      v =
-        e.team === "company"
-          ? "#4f737d"
-          : e.epithet.toLowerCase().includes("mire") ||
-              e.epithet.toLowerCase().includes("bog") ||
-              e.epithet.toLowerCase().includes("reed") ||
-              e.epithet.toLowerCase().includes("fen")
-            ? "#52624a"
-            : e.epithet.toLowerCase().includes("iron") ||
-                e.epithet.toLowerCase().includes("plate") ||
-                e.epithet.toLowerCase().includes("marshal")
-              ? "#555a5d"
-              : "#7c3c35",
+      v = armorTint(e),
       b = e.bodyArmorMax > 0 ? e.bodyArmor / e.bodyArmorMax : 0;
     this.drawPortraitToken(e, m, n, v, b);
     const u = 37 * n,
@@ -812,11 +809,7 @@ export class BattleRenderer {
       a.restore());
   }
   drawPortraitToken(e, t, a, i, n) {
-    const r = this.context,
-      o = e.id.charCodeAt(1) + e.name.length,
-      l = o % 3 === 0 ? "#b98563" : o % 3 === 1 ? "#d1a078" : "#8e614c",
-      d = ["#34251f", "#6d5032", "#292a27", "#8a6a42"][o % 4],
-      c = e.team === "company" ? "#6f9aa2" : "#a35a50";
+    const r = this.context;
     (this.drawWeapon(e, t, a * 1.04),
       e.hasShield &&
         (r.save(),
@@ -842,111 +835,7 @@ export class BattleRenderer {
         r.lineTo(7 * a, -1 * a),
         r.stroke(),
         r.restore()),
-      r.save(),
-      (r.fillStyle = "#111615"),
-      (r.strokeStyle = c),
-      (r.lineWidth = 3.2 * a),
-      r.beginPath(),
-      r.arc(0, 0, 22 * a, 0, Math.PI * 2),
-      r.fill(),
-      r.stroke(),
-      r.beginPath(),
-      r.arc(0, 0, 19.5 * a, 0, Math.PI * 2),
-      r.clip());
-    const m = r.createLinearGradient(0, -20 * a, 0, 20 * a);
-    (m.addColorStop(0, shiftColor(i, 12)),
-      m.addColorStop(0.58, shiftColor(i, -10)),
-      m.addColorStop(1, "#181d1c"),
-      (r.fillStyle = m),
-      r.fillRect(-22 * a, -22 * a, 44 * a, 44 * a));
-    const v = r.createLinearGradient(0, 2 * a, 0, 22 * a);
-    (v.addColorStop(0, shiftColor(i, Math.floor(n * 28))),
-      v.addColorStop(1, shiftColor(i, -26)),
-      (r.fillStyle = v),
-      (r.strokeStyle = "#151817"),
-      (r.lineWidth = 1.3 * a),
-      r.beginPath(),
-      r.ellipse(0, 17 * a, 20 * a, 14 * a, 0, Math.PI, Math.PI * 2),
-      r.lineTo(20 * a, 23 * a),
-      r.lineTo(-20 * a, 23 * a),
-      r.closePath(),
-      r.fill(),
-      r.stroke(),
-      (r.strokeStyle = "rgba(225, 216, 190, .38)"),
-      (r.lineWidth = 1 * a));
-    for (let b = 6; b <= 18; b += 4)
-      (r.beginPath(),
-        r.moveTo(-13 * a, b * a),
-        r.lineTo(13 * a, b * a),
-        r.stroke());
-    ((r.fillStyle = shiftColor(l, -14)),
-      r.fillRect(-4 * a, 3 * a, 8 * a, 8 * a),
-      (r.fillStyle = l),
-      r.beginPath(),
-      r.ellipse(0, -5 * a, 9.2 * a, 11.5 * a, 0, 0, Math.PI * 2),
-      r.fill(),
-      (r.fillStyle = shiftColor(l, -10)));
-    for (const b of [-9.5, 9.5])
-      (r.beginPath(), r.arc(b * a, -4 * a, 2.1 * a, 0, Math.PI * 2), r.fill());
-    if (e.headArmorMax >= 42) {
-      ((r.fillStyle = shiftColor(i, 27)),
-        (r.strokeStyle = "#181b1b"),
-        (r.lineWidth = 1.3 * a),
-        r.beginPath(),
-        r.arc(0, -8 * a, 10.5 * a, Math.PI, Math.PI * 2),
-        r.lineTo(9.5 * a, -3.5 * a),
-        r.lineTo(6.8 * a, -1 * a),
-        r.lineTo(5.7 * a, -5 * a),
-        r.lineTo(-5.7 * a, -5 * a),
-        r.lineTo(-6.8 * a, -1 * a),
-        r.lineTo(-9.5 * a, -3.5 * a),
-        r.closePath(),
-        r.fill(),
-        r.stroke(),
-        (r.strokeStyle = "#d0b16b"),
-        r.beginPath(),
-        r.moveTo(-8 * a, -5.2 * a),
-        r.lineTo(8 * a, -5.2 * a),
-        r.stroke());
-    } else {
-      ((r.fillStyle = d),
-        r.beginPath(),
-        r.arc(0, -9 * a, 9.3 * a, Math.PI, Math.PI * 2),
-        r.lineTo(8 * a, -6 * a),
-        r.quadraticCurveTo(1 * a, -10 * a, -8.5 * a, -5.5 * a),
-        r.closePath(),
-        r.fill());
-    }
-    ((r.fillStyle = "#171514"),
-      r.beginPath(),
-      r.ellipse(-3.7 * a, -4.5 * a, 1.05 * a, 0.75 * a, 0, 0, Math.PI * 2),
-      r.ellipse(3.7 * a, -4.5 * a, 1.05 * a, 0.75 * a, 0, 0, Math.PI * 2),
-      r.fill(),
-      (r.strokeStyle = shiftColor(l, -30)),
-      (r.lineWidth = 0.9 * a),
-      r.beginPath(),
-      r.moveTo(0, -3 * a),
-      r.lineTo(-0.8 * a, 1 * a),
-      r.lineTo(1.4 * a, 1.2 * a),
-      r.stroke(),
-      r.beginPath(),
-      r.moveTo(-3 * a, 4.2 * a),
-      r.quadraticCurveTo(0, 5.4 * a, 3 * a, 4.1 * a),
-      r.stroke());
-    if (o % 3 === 0)
-      ((r.fillStyle = d),
-        r.beginPath(),
-        r.moveTo(-5.5 * a, 2.5 * a),
-        r.quadraticCurveTo(0, 5.5 * a, 5.5 * a, 2.5 * a),
-        r.quadraticCurveTo(4 * a, 10 * a, 0, 10.5 * a),
-        r.quadraticCurveTo(-4 * a, 10 * a, -5.5 * a, 2.5 * a),
-        r.fill());
-    (r.restore(),
-      (r.strokeStyle = "rgba(241, 226, 190, .45)"),
-      (r.lineWidth = 1 * a),
-      r.beginPath(),
-      r.arc(0, 0, 18.4 * a, Math.PI * 1.08, Math.PI * 1.82),
-      r.stroke());
+      drawPortraitMedallion(r, e, a, { tint: i, armorRatio: n }));
     const f = { sword: "†", spear: "↟", axe: "⌁", mace: "●" }[e.weaponId];
     (r.save(),
       r.translate(t * 17 * a, 14 * a),

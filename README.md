@@ -86,7 +86,14 @@ new company; a running campaign then keeps its own copy.
   objective markers, impacts, casualties, and faction silhouettes rendered
   directly in Canvas.
 - A scrollable battlefield with 100–250% zoom, centered zoom anchoring, and
-  keyboard-accessible zoom controls.
+  keyboard-accessible zoom controls. The board is measured from its own tiles,
+  so every hex is on screen at 100% and scrolling only becomes necessary once
+  the player zooms in.
+- Per-fighter portraits hashed from a fighter's identity — skin, hair, beard,
+  scars and war paint stay with that person for the whole campaign, while
+  helmet, armor tint and armor wear are read from live state. The same face
+  appears on the battlefield token, in the turn rail, and in the inspection
+  panel.
 - Initiative rounds, action points, fatigue, waiting, recovery, and rout movement.
 - Sword, spear, axe, and mace profiles with shields, accuracy, armor damage, penetration, and stagger.
 - Separate head armor, body armor, health, morale states, death, and routing.
@@ -111,7 +118,10 @@ been split into ES modules along its own seams, and the minifier's mangled
 identifiers renamed, so the rules are readable and testable outside a browser.
 `npm test` parses every module, checks the assets, and runs the rule suite in
 `scripts/test-rules.mjs` — campaign economy, travel gating, defeat conditions,
-command validation, and seeded battle replay.
+command validation, and seeded battle replay. `scripts/test-battle-view.mjs`
+covers the presentation that can be checked without a browser: the battlefield
+fit at a range of viewport sizes, and portrait traits staying stable and
+distinct.
 
 The layers depend in one direction only: `battle/` knows nothing about the
 campaign, `campaign/` knows nothing about the DOM, and only `ui/` touches the
@@ -123,7 +133,7 @@ document. That is what lets the rules run under Node.
 - `src/main.js`: entry point; builds the campaign application.
 - `src/battle/`: hex geometry, weapons, terrain, battlefields, unit templates, battle state, command rules, and the enemy AI.
 - `src/campaign/`: campaign data, deterministic generation, campaign rules, the campaign-to-battle bridge, and save storage.
-- `src/ui/`: screen markup and behaviour — title, frontier map, campaign views, battle screen, and the Canvas battle renderer.
+- `src/ui/`: screen markup and behaviour — title, frontier map, campaign views, battle screen, the Canvas battle renderer, the battlefield fit in `battle-layout.js`, and the fighter portraits in `portrait.js`.
 - `src/game.css`: core game presentation.
 - `src/screens.css`: title screen and frontier map presentation.
 - `src/art-runtime.js` and `src/art.css`: generated-art UI integration.
