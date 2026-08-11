@@ -6,15 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/build-static.mjs",
-    "build:html": "npm run build",
     "preview": "vite preview",
-    "test": "node scripts/verify-art.mjs"
+    "check": "node --check src/game.js && node --check src/art-runtime.js && node --check src/music-player.js",
+    "test": "npm run check && node scripts/verify-static.mjs && node scripts/test-music-player.mjs && node scripts/smoke-server.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "tsx": "^4.20.0",
-    "typescript": "^5.8.0",
-    "vite": "^7.0.0",
-    "vitest": "^3.2.0"
+    "prettier": "^3.6.2",
+    "vite": "^7.0.0"
   }
 }

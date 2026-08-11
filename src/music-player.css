@@ -1,0 +1,74 @@
+.music-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 10000;
+  display: inline-grid;
+  grid-template-columns: auto auto 8px;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 12px;
+  color: #ded5bf;
+  border: 1px solid rgb(195 157 79 / 55%);
+  border-radius: 3px;
+  background: linear-gradient(145deg, rgb(48 53 54 / 96%), rgb(20 23 24 / 96%));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  font:
+    700 11px/1 system-ui,
+    sans-serif;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.music-toggle:hover,
+.music-toggle:focus-visible {
+  color: #f3e5c4;
+  border-color: #d6b568;
+  outline: none;
+}
+
+.music-toggle__icon {
+  color: #d6b568;
+  font:
+    700 17px/1 Georgia,
+    serif;
+}
+
+.music-toggle__pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6f6b63;
+}
+
+.music-toggle[data-state="on"] .music-toggle__pulse {
+  background: #c8a653;
+  box-shadow: 0 0 0 0 rgb(200 166 83 / 45%);
+  animation: music-pulse 2.2s ease-out infinite;
+}
+
+.music-toggle[data-state="start"] .music-toggle__pulse {
+  background: #b8794f;
+}
+
+@keyframes music-pulse {
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px rgb(200 166 83 / 0%);
+  }
+}
+
+@media (max-width: 700px) {
+  .music-toggle {
+    right: 10px;
+    bottom: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music-toggle[data-state="on"] .music-toggle__pulse {
+    animation: none;
+  }
+}
