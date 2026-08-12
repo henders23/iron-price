@@ -6,6 +6,64 @@
 // saved campaigns. Equipment-driven details (helmet, armor tint, armor damage)
 // are read from live unit state so the portrait still carries battle
 // information rather than being pure decoration.
+//
+// When the painted portrait atlases are available they are the face of record:
+// the battlefield, the turn rail, the deployment roster and the inspection
+// panel all crop the same atlas cell, so a fighter looks the same everywhere.
+// The procedural face below stays as the fallback while the atlas loads.
+
+import { artImage } from "../art/canvas-art.js";
+
+export const PORTRAIT_ATLASES = {
+  company: "portraits/company.webp",
+  "thorn-reavers": "portraits/thorn-reavers.webp",
+  mireborn: "portraits/mireborn.webp",
+  ironbound: "portraits/ironbound.webp",
+};
+
+export const COMPANY_PORTRAIT_INDEX = new Map([
+  ["Mara Venn", 0],
+  ["Osric Vale", 1],
+  ["Toman Rusk", 2],
+  ["Elia Fen", 3],
+  ["Bram Coal", 4],
+  ["Iven Pike", 5],
+]);
+
+export function portraitAtlasPath(unit) {
+  return (
+    PORTRAIT_ATLASES[
+      unit.team === "company"
+        ? "company"
+        : (unit.portraitSet ?? "thorn-reavers")
+    ] ?? PORTRAIT_ATLASES["thorn-reavers"]
+  );
+}
+
+export function portraitIndexForUnit(unit) {
+  if (unit.team === "company" && COMPANY_PORTRAIT_INDEX.has(unit.name))
+    return COMPANY_PORTRAIT_INDEX.get(unit.name);
+  const slot = unit.team === "enemy" ? unit.id.match(/^e([1-6])$/) : null;
+  if (slot) return Number(slot[1]) - 1;
+  let hash = 2166136261;
+  for (const char of `${unit.id}|${unit.name}`) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) % 6;
+}
+
+// Fires the callback once for every portrait atlas that finishes loading after
+// this call, so panels drawn with the procedural fallback can repaint with the
+// real faces.
+export function whenPortraitArtLoaded(callback) {
+  if (typeof document === "undefined") return;
+  for (const path of Object.values(PORTRAIT_ATLASES)) {
+    const image = artImage(path);
+    if (!image.complete)
+      image.addEventListener("load", callback, { once: true });
+  }
+}
 
 export function shiftColor(hex, amount) {
   const value = Number.parseInt(hex.slice(1), 16),
@@ -454,6 +512,60 @@ export function drawPortraitMedallion(context, unit, scale, options = {}) {
   context.beginPath();
   context.arc(0, 0, 18.4 * scale, Math.PI * 1.08, Math.PI * 1.82);
   context.stroke();
+}
+
+// Painted portrait badges for the HTML panels: a circular head-and-shoulders
+// crop of the fighter's atlas cell with a team-coloured rim. Returns "" until
+// the atlas has loaded, so callers fall back to the procedural badge.
+const photoBadgeCache = new Map();
+
+export function portraitPhotoBadge(unit, pixels = 34) {
+  if (typeof document === "undefined") return "";
+  const path = portraitAtlasPath(unit),
+    image = artImage(path);
+  if (!image.complete || !image.naturalWidth) return "";
+  const index = portraitIndexForUnit(unit),
+    rim = unit.team === "company" ? "#6f9aa2" : "#a35a50",
+    key = `${path}|${index}|${rim}|${pixels}`;
+  const cached = photoBadgeCache.get(key);
+  if (cached) return cached;
+  const ratio = Math.min(
+      typeof window === "undefined" ? 1 : window.devicePixelRatio || 1,
+      2,
+    ),
+    canvas = document.createElement("canvas");
+  canvas.width = Math.round(pixels * ratio);
+  canvas.height = Math.round(pixels * ratio);
+  const context = canvas.getContext("2d");
+  if (!context) return "";
+  context.setTransform(ratio, 0, 0, ratio, 0, 0);
+  const cellWidth = image.naturalWidth / 3,
+    cellHeight = image.naturalHeight / 2,
+    cellX = (index % 3) * cellWidth,
+    cellY = Math.floor(index / 3) * cellHeight,
+    // The faces sit in the upper middle of their cells, so the badge crops
+    // there instead of squeezing the whole bust into a small circle.
+    crop = cellWidth * 0.74,
+    sourceX = cellX + (cellWidth - crop) / 2,
+    sourceY = cellY + cellHeight * 0.03,
+    center = pixels / 2,
+    rimWidth = Math.max(1.4, pixels * 0.06);
+  context.beginPath();
+  context.arc(center, center, center - rimWidth / 2, 0, Math.PI * 2);
+  context.fillStyle = "#111615";
+  context.fill();
+  context.save();
+  context.clip();
+  context.drawImage(image, sourceX, sourceY, crop, crop, 0, 0, pixels, pixels);
+  context.restore();
+  context.strokeStyle = rim;
+  context.lineWidth = rimWidth;
+  context.beginPath();
+  context.arc(center, center, center - rimWidth / 2, 0, Math.PI * 2);
+  context.stroke();
+  const url = canvas.toDataURL("image/png");
+  photoBadgeCache.set(key, url);
+  return url;
 }
 
 // Portraits for the HTML panels. Rendering to an offscreen canvas once and

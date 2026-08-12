@@ -14,6 +14,7 @@ const battleRenderer = await readFile(
   join(root, "src/ui/battle-renderer.js"),
   "utf8",
 );
+const portraitModule = await readFile(join(root, "src/ui/portrait.js"), "utf8");
 const artRuntime = await readFile(join(root, "src/art-runtime.js"), "utf8");
 const musicPlayer = await readFile(join(root, "src/music-player.js"), "utf8");
 
@@ -124,10 +125,12 @@ for (const terrain of manifest.terrain) {
   }
 }
 
+// The portrait atlas paths live in the shared portrait module, which both the
+// battle renderer and the HTML panels crop their faces from.
 for (const portrait of manifest.portraits) {
-  if (!battleRenderer.includes(`portraits/${portrait}.webp`)) {
+  if (!portraitModule.includes(`portraits/${portrait}.webp`)) {
     throw new Error(
-      `The battle renderer does not reference portrait set ${portrait}.`,
+      `The portrait module does not reference portrait set ${portrait}.`,
     );
   }
 }

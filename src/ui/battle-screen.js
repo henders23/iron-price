@@ -20,9 +20,13 @@ import {
   replayBattle,
 } from "../battle/state.js";
 import { MORALE_LADDER, TERRAIN, WEAPONS } from "../battle/weapons.js";
-import { BattleRenderer } from "./battle-renderer.js";
+import { BattleRenderer, MAX_ZOOM, MIN_ZOOM } from "./battle-renderer.js";
 import { renderBattleShell } from "./battle-template.js";
-import { portraitBadge } from "./portrait.js";
+import {
+  portraitBadge,
+  portraitPhotoBadge,
+  whenPortraitArtLoaded,
+} from "./portrait.js";
 
 export class BattleScreen {
   state;
@@ -40,10 +44,7 @@ export class BattleScreen {
   keyHandler;
   mapKeyHandler;
   mapWheelHandler;
-  mapResizeObserver;
   mapViewport;
-  mapSurface;
-  mapZoom = 1;
   constructor(e) {
     ((this.options = e),
       (this.seed = e.seed >>> 0),
@@ -101,86 +102,62 @@ export class BattleScreen {
       }),
       this.setupMapViewport(),
       this.bindControls(),
+      whenPortraitArtLoaded(() => this.refresh()),
       this.refresh());
   }
   setupMapViewport() {
-    const e = document.querySelector("#battle-viewport"),
-      t = document.querySelector("#battle-surface");
-    if (!e || !t) return;
+    const e = document.querySelector("#battle-viewport");
+    if (!e) return;
     ((this.mapViewport = e),
-      (this.mapSurface = t),
+      // A plain wheel spin zooms the battlefield, centred on the cursor. No
+      // modifier is needed; Ctrl/trackpad-pinch wheels behave the same way.
       (this.mapWheelHandler = (a) => {
-        if (!a.ctrlKey && !a.metaKey) return;
-        (a.preventDefault(),
-          this.setMapZoom(this.mapZoom + (a.deltaY < 0 ? 0.15 : -0.15)));
+        a.preventDefault();
+        const i = this.renderer.canvas.getBoundingClientRect();
+        this.renderer.zoomBy(Math.exp(-a.deltaY * 0.0016), {
+          x: a.clientX - i.left,
+          y: a.clientY - i.top,
+        });
       }),
       (this.mapKeyHandler = (a) => {
         if (a.key === "+" || a.key === "=") {
-          (a.preventDefault(), this.setMapZoom(this.mapZoom + 0.25));
+          (a.preventDefault(),
+            this.setMapZoom(this.renderer.zoomTarget + 0.25));
         } else if (a.key === "-") {
-          (a.preventDefault(), this.setMapZoom(this.mapZoom - 0.25));
+          (a.preventDefault(),
+            this.setMapZoom(this.renderer.zoomTarget - 0.25));
         } else if (a.key === "0") {
-          (a.preventDefault(), this.setMapZoom(1));
+          (a.preventDefault(), this.renderer.resetCamera());
         }
       }),
       e.addEventListener("wheel", this.mapWheelHandler, { passive: !1 }),
       e.addEventListener("keydown", this.mapKeyHandler),
       document
         .querySelector("#map-zoom-in")
-        ?.addEventListener("click", () => this.setMapZoom(this.mapZoom + 0.25)),
+        ?.addEventListener("click", () =>
+          this.setMapZoom(this.renderer.zoomTarget + 0.25),
+        ),
       document
         .querySelector("#map-zoom-out")
-        ?.addEventListener("click", () => this.setMapZoom(this.mapZoom - 0.25)),
+        ?.addEventListener("click", () =>
+          this.setMapZoom(this.renderer.zoomTarget - 0.25),
+        ),
       document
         .querySelector("#map-zoom-fit")
-        ?.addEventListener("click", () => this.setMapZoom(1)),
-      (this.mapResizeObserver = new ResizeObserver(() =>
-        this.resizeMapSurface(),
-      )),
-      this.mapResizeObserver.observe(e),
-      this.resizeMapSurface());
-  }
-  // At 100% the surface is exactly the viewport, and CSS holds it there. Sizing
-  // it from clientWidth instead would fight the scrollbars it creates: a
-  // fractional client box makes the surface a hair too large, the scrollbar
-  // that appears shrinks the client box, and the viewport flickers between the
-  // two while every measurement re-sizes — and so clears — the canvas.
-  resizeMapSurface() {
-    if (!this.mapViewport || !this.mapSurface) return;
-    if (this.mapZoom > 1) {
-      const e = Math.max(1, this.mapViewport.clientWidth),
-        t = Math.max(1, this.mapViewport.clientHeight);
-      ((this.mapSurface.style.width = `${Math.floor(e * this.mapZoom)}px`),
-        (this.mapSurface.style.height = `${Math.floor(t * this.mapZoom)}px`));
-    } else
-      ((this.mapSurface.style.width = ""), (this.mapSurface.style.height = ""));
-    this.mapViewport.classList.toggle("zoomed", this.mapZoom > 1);
-    const a = document.querySelector("#map-zoom-value"),
-      i = document.querySelector("#map-zoom-out"),
-      n = document.querySelector("#map-zoom-in");
-    (a && (a.textContent = `${Math.round(this.mapZoom * 100)}%`),
-      i && (i.disabled = this.mapZoom <= 1),
-      n && (n.disabled = this.mapZoom >= 2.5));
+        ?.addEventListener("click", () => this.renderer.resetCamera()),
+      (this.renderer.onCameraChange = (a) => this.refreshZoomDisplay(a)),
+      this.refreshZoomDisplay(this.renderer.zoomTarget));
   }
   setMapZoom(e) {
-    if (!this.mapViewport || !this.mapSurface) return;
-    const t = Math.max(1, Math.min(2.5, Math.round(e * 20) / 20));
-    if (t === this.mapZoom) return;
-    const a = this.mapSurface.offsetWidth || this.mapViewport.clientWidth,
-      i = this.mapSurface.offsetHeight || this.mapViewport.clientHeight,
-      n = (this.mapViewport.scrollLeft + this.mapViewport.clientWidth / 2) / a,
-      r = (this.mapViewport.scrollTop + this.mapViewport.clientHeight / 2) / i;
-    ((this.mapZoom = t), this.resizeMapSurface(), this.renderer.resize());
-    requestAnimationFrame(() => {
-      if (!this.mapViewport || !this.mapSurface) return;
-      ((this.mapViewport.scrollLeft =
-        n * this.mapSurface.offsetWidth - this.mapViewport.clientWidth / 2),
-        (this.mapViewport.scrollTop =
-          r * this.mapSurface.offsetHeight -
-          this.mapViewport.clientHeight / 2));
-      if (t === 1)
-        ((this.mapViewport.scrollLeft = 0), (this.mapViewport.scrollTop = 0));
-    });
+    this.renderer.setZoomTarget(Math.round(e * 20) / 20);
+  }
+  refreshZoomDisplay(e) {
+    const t = document.querySelector("#map-zoom-value"),
+      a = document.querySelector("#map-zoom-out"),
+      i = document.querySelector("#map-zoom-in");
+    (t && (t.textContent = `${Math.round(e * 100)}%`),
+      a && (a.disabled = e <= MIN_ZOOM),
+      i && (i.disabled = e >= MAX_ZOOM));
   }
   bindControls() {
     (document
@@ -239,7 +216,6 @@ export class BattleScreen {
     (document.removeEventListener("keydown", this.keyHandler),
       this.mapViewport?.removeEventListener("wheel", this.mapWheelHandler),
       this.mapViewport?.removeEventListener("keydown", this.mapKeyHandler),
-      this.mapResizeObserver?.disconnect(),
       this.renderer.destroy());
   }
   onHover(e) {
@@ -304,12 +280,22 @@ export class BattleScreen {
   }
   async playerCommand(e) {
     if (this.locked) return;
-    ((this.locked = !0),
-      (await this.execute(e)) &&
-        this.state.phase === "battle" &&
-        (await this.runAiTurns()),
-      (this.locked = !1),
-      this.refresh());
+    this.locked = !0;
+    if ((await this.execute(e)) && this.state.phase === "battle") {
+      // A fighter with no action points left has nothing more to do, so the
+      // activation passes on without demanding an explicit end-turn click.
+      if (e.type === "move" || e.type === "attack") {
+        const t = activeUnit(this.state);
+        t &&
+          t.id === e.unitId &&
+          t.team === "company" &&
+          t.morale !== "fleeing" &&
+          t.ap <= 0 &&
+          (await this.execute({ type: "endTurn", unitId: t.id }));
+      }
+      this.state.phase === "battle" && (await this.runAiTurns());
+    }
+    ((this.locked = !1), this.refresh());
   }
   async execute(e) {
     const t = applyCommand(this.state, e);
@@ -458,11 +444,30 @@ export class BattleScreen {
           : this.state.phase.toUpperCase()),
       o.classList.toggle("quiet", this.state.phase === "battle"));
   }
+  unitBadge(e, t) {
+    return portraitPhotoBadge(e, t) || portraitBadge(e, t);
+  }
   refreshTurnOrder() {
     const e = document.querySelector("#turn-order");
     if (this.state.phase === "deployment") {
-      e.innerHTML =
-        '<span class="deployment-note">Place six fighters, then commit the line.</span>';
+      // The company roster stands in for the turn order while deploying, so
+      // every fighter's face is visible and clickable before the line forms.
+      ((e.innerHTML = this.state.units
+        .filter((t) => t.team === "company" && t.alive)
+        .map((t) => {
+          const a = this.unitBadge(t, 28);
+          return `<button class="turn-token deploy company ${t.id === this.selectedDeploymentUnitId ? "selected" : ""}" data-deploy="${t.id}" title="${t.name} · ${t.epithet}">
+      <span class="token-initial"${a ? ` style="background-image:url('${a}')"` : ""}>${a ? "" : t.name.charAt(0)}</span><span class="token-name">${t.name.split(" ")[0]}</span>
+    </button>`;
+        })
+        .join("")),
+        e.querySelectorAll("[data-deploy]").forEach((t) =>
+          t.addEventListener("click", () => {
+            ((this.selectedDeploymentUnitId = t.dataset.deploy ?? "c1"),
+              (this.inspectedUnitId = t.dataset.deploy ?? null),
+              this.refresh());
+          }),
+        ));
       return;
     }
     ((e.innerHTML = this.state.queue
@@ -470,7 +475,7 @@ export class BattleScreen {
       .map((t, a) => {
         const i = this.state.units.find((r) => r.id === t),
           n = (i.headArmor + i.bodyArmor) / (i.headArmorMax + i.bodyArmorMax);
-        const o = portraitBadge(i, 28);
+        const o = this.unitBadge(i, 28);
         return `<button class="turn-token ${i.team} ${a === 0 ? "active" : ""}" data-inspect="${i.id}" title="${i.name}">
       <span class="token-initial"${o ? ` style="background-image:url('${o}')"` : ""}>${o ? "" : i.name.charAt(0)}</span><span class="token-bars"><i style="--fill:${i.hp / i.hpMax}"></i><i style="--fill:${n}"></i></span><small>${a + 1}</small>
     </button>`;
@@ -502,7 +507,7 @@ export class BattleScreen {
     }
     const a = WEAPONS[e.weaponId],
       i = MORALE_LADDER.indexOf(e.morale),
-      n = portraitBadge(e, 54);
+      n = this.unitBadge(e, 54);
     t.innerHTML = `
     <div class="unit-heading"><div class="portrait-seal ${e.team}"${n ? ` style="background-image:url('${n}')"` : ""}>${
       n

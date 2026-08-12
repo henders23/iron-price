@@ -337,6 +337,27 @@ summary:focus-visible {
   color: #7e796f;
   font-size: 8px;
 }
+/* Deployment roster tokens: the same rail, but faces plus names, and the
+   selected fighter carries the brass highlight. */
+.turn-token.deploy {
+  grid-template-columns: 28px minmax(0, 1fr);
+  width: 92px;
+}
+.turn-token.deploy .token-name {
+  overflow: hidden;
+  color: #d9cfae;
+  font:
+    600 10px Georgia,
+    serif;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.turn-token.deploy.selected {
+  border-color: var(--brass);
+  background: linear-gradient(135deg, #3b3930, #1e2020);
+  box-shadow: 0 0 14px #d8b45b26;
+}
 .battle-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 310px;
@@ -354,16 +375,11 @@ summary:focus-visible {
 .battle-viewport {
   position: absolute;
   inset: 0;
-  /* The board fits at 100%, so scrollbars only exist once the player zooms in.
-     Leaving them on would let a scrollbar resize the box that sizes it. */
+  /* Zoom and pan happen inside the canvas camera, so the viewport itself
+     never scrolls and the canvas box never changes size mid-gesture. */
   overflow: hidden;
   overscroll-behavior: contain;
-  scrollbar-color: #776b4f #171b19;
-  scrollbar-width: thin;
   outline: none;
-}
-.battle-viewport.zoomed {
-  overflow: auto;
 }
 .battle-viewport:focus-visible {
   box-shadow: inset 0 0 0 2px rgba(221, 190, 105, 0.72);
@@ -380,7 +396,10 @@ summary:focus-visible {
   width: 100%;
   height: 100%;
   cursor: crosshair;
-  touch-action: pan-x pan-y;
+  touch-action: none;
+}
+#battle-canvas.panning {
+  cursor: grabbing;
 }
 .map-controls {
   position: absolute;

@@ -29,7 +29,7 @@ export function renderBattleShell(s) {
 
   <section class="battle-layout">
     <div class="battle-stage">
-      <div id="battle-viewport" class="battle-viewport" tabindex="0" aria-label="Scrollable tactical battlefield. Scroll to pan and use Control plus mouse wheel to zoom.">
+      <div id="battle-viewport" class="battle-viewport" tabindex="0" aria-label="Tactical battlefield. Use the mouse wheel to zoom and drag to pan.">
         <div id="battle-surface" class="battle-surface">
           <canvas id="battle-canvas" aria-label="Iron Price tactical battlefield"></canvas>
         </div>
@@ -46,7 +46,7 @@ export function renderBattleShell(s) {
         <span><i class="legend-swatch move"></i> Reachable</span>
         <span><i class="legend-swatch path"></i> Planned path</span>
         <span><i class="legend-swatch threat"></i> Enemy</span>
-        <span class="map-gesture-hint">Scroll to pan · Ctrl + wheel to zoom</span>
+        <span class="map-gesture-hint">Wheel to zoom · drag to pan</span>
       </div>
     </div>
 

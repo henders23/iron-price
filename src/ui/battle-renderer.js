@@ -6,7 +6,14 @@ import {
   battlefieldLayout,
   canvasBackingRatio,
 } from "./battle-layout.js";
-import { armorTint, drawPortraitMedallion, shiftColor } from "./portrait.js";
+import {
+  PORTRAIT_ATLASES,
+  armorTint,
+  drawPortraitMedallion,
+  portraitAtlasPath,
+  portraitIndexForUnit,
+  shiftColor,
+} from "./portrait.js";
 
 const TERRAIN_TEXTURES = {
   grass: "terrain/grass.webp",
@@ -19,13 +26,6 @@ const TERRAIN_TEXTURES = {
   water: "terrain/water.webp",
 };
 
-const PORTRAIT_ATLASES = {
-  company: "portraits/company.webp",
-  "thorn-reavers": "portraits/thorn-reavers.webp",
-  mireborn: "portraits/mireborn.webp",
-  ironbound: "portraits/ironbound.webp",
-};
-
 const EQUIPMENT_ART = {
   shield: "icons/resources/shield.webp",
   sword: "icons/weapons/sword-worn.webp",
@@ -34,14 +34,8 @@ const EQUIPMENT_ART = {
   mace: "icons/weapons/mace-worn.webp",
 };
 
-const COMPANY_PORTRAIT_INDEX = new Map([
-  ["Mara Venn", 0],
-  ["Osric Vale", 1],
-  ["Toman Rusk", 2],
-  ["Elia Fen", 3],
-  ["Bram Coal", 4],
-  ["Iven Pike", 5],
-]);
+export const MIN_ZOOM = 1;
+export const MAX_ZOOM = 2.5;
 
 export { SQRT3, shiftColor };
 export function easeInOutQuad(s) {
@@ -64,6 +58,18 @@ export class BattleRenderer {
   pixelRatio = 1;
   size = 42;
   origin = { x: 0, y: 0 };
+  baseSize = 42;
+  baseOrigin = { x: 0, y: 0 };
+  // The camera eases toward its target every frame, so wheel zooms and drag
+  // pans glide instead of snapping between discrete steps.
+  zoom = 1;
+  pan = { x: 0, y: 0 };
+  zoomTarget = 1;
+  panTarget = { x: 0, y: 0 };
+  onCameraChange = null;
+  drag = null;
+  lastHoverKey = "";
+  lastFrameTime = 0;
   layoutTiles = 0;
   motion = null;
   floaters = [];
@@ -89,9 +95,15 @@ export class BattleRenderer {
         ...Object.values(EQUIPMENT_ART),
       ].forEach((n) => artImage(n)),
       this.resizeObserver.observe(e),
-      e.addEventListener("pointermove", (n) => this.handlePointer(n, !1)),
-      e.addEventListener("pointerleave", () => this.onHover(null)),
-      e.addEventListener("pointerdown", (n) => this.handlePointer(n, !0)),
+      e.addEventListener("pointermove", (n) => this.handlePointerMove(n)),
+      e.addEventListener("pointerleave", () => {
+        ((this.lastHoverKey = ""), this.onHover(null));
+      }),
+      e.addEventListener("pointerdown", (n) => this.handlePointerDown(n)),
+      e.addEventListener("pointerup", (n) => this.handlePointerUp(n)),
+      e.addEventListener("pointercancel", () => {
+        ((this.drag = null), this.canvas.classList.remove("panning"));
+      }),
       this.resize(),
       requestAnimationFrame((n) => this.render(n)));
   }
@@ -216,21 +228,126 @@ export class BattleRenderer {
       (this.pixelRatio = a / this.width),
       this.context.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0));
     const n = battlefieldLayout(this.state?.tiles, this.width, this.height);
-    ((this.size = n.size),
-      (this.origin = n.origin),
-      (this.layoutTiles = this.state?.tiles.length ?? 0));
+    ((this.baseSize = n.size),
+      (this.baseOrigin = n.origin),
+      (this.layoutTiles = this.state?.tiles.length ?? 0),
+      this.applyCamera());
   }
-  handlePointer(e, t) {
+  // The camera scales the fitted layout about the canvas origin and then
+  // translates it, so hit-testing and drawing share the same numbers.
+  clampPan(e, t) {
+    return {
+      x: Math.min(0, Math.max(this.width * (1 - t), e.x)),
+      y: Math.min(0, Math.max(this.height * (1 - t), e.y)),
+    };
+  }
+  applyCamera() {
+    ((this.pan = this.clampPan(this.pan, this.zoom)),
+      (this.size = this.baseSize * this.zoom),
+      (this.origin = {
+        x: this.baseOrigin.x * this.zoom + this.pan.x,
+        y: this.baseOrigin.y * this.zoom + this.pan.y,
+      }));
+  }
+  setZoomTarget(e, t) {
+    const a = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, e));
+    if (a === this.zoomTarget) return;
+    const i = t ?? { x: this.width / 2, y: this.height / 2 },
+      n = a / this.zoomTarget;
+    ((this.panTarget = this.clampPan(
+      {
+        x: i.x - (i.x - this.panTarget.x) * n,
+        y: i.y - (i.y - this.panTarget.y) * n,
+      },
+      a,
+    )),
+      (this.zoomTarget = a),
+      this.onCameraChange?.(a));
+  }
+  zoomBy(e, t) {
+    this.setZoomTarget(this.zoomTarget * e, t);
+  }
+  resetCamera() {
+    ((this.zoomTarget = 1),
+      (this.panTarget = { x: 0, y: 0 }),
+      this.onCameraChange?.(1));
+  }
+  // Ease the live camera toward its target. Called once per frame; returns
+  // quickly when the camera is already settled.
+  advanceCamera(e) {
+    const t = this.lastFrameTime
+      ? Math.min(0.1, (e - this.lastFrameTime) / 1000)
+      : 0.016;
+    this.lastFrameTime = e;
+    const a = document.documentElement.classList.contains("reduced-motion")
+        ? 1
+        : 1 - Math.exp(-t * 14),
+      i = this.zoomTarget - this.zoom,
+      n = this.panTarget.x - this.pan.x,
+      r = this.panTarget.y - this.pan.y;
+    if (Math.abs(i) < 0.0005 && Math.abs(n) < 0.1 && Math.abs(r) < 0.1) {
+      if (this.zoom === this.zoomTarget && this.pan.x === this.panTarget.x)
+        return;
+      ((this.zoom = this.zoomTarget), (this.pan = { ...this.panTarget }));
+    } else
+      ((this.zoom += i * a),
+        (this.pan = { x: this.pan.x + n * a, y: this.pan.y + r * a }));
+    this.applyCamera();
+  }
+  pointerPoint(e) {
+    const t = this.canvas.getBoundingClientRect();
+    return { x: e.clientX - t.left, y: e.clientY - t.top };
+  }
+  hexAtPoint(e) {
+    if (!this.state) return null;
+    const t = this.unitAtPoint(e),
+      a = t
+        ? this.state.tiles.find((i) => sameHex(i, t.position))
+        : this.state.tiles.find((i) => this.pointInHex(e, this.hexCenter(i)));
+    return a ? { q: a.q, r: a.r } : null;
+  }
+  handlePointerDown(e) {
+    if (!this.state || e.button > 1) return;
+    ((this.drag = {
+      pointerId: e.pointerId,
+      start: this.pointerPoint(e),
+      panStart: { ...this.panTarget },
+      moved: !1,
+    }),
+      this.canvas.setPointerCapture?.(e.pointerId));
+  }
+  handlePointerMove(e) {
     if (!this.state) return;
-    const a = this.canvas.getBoundingClientRect(),
-      i = { x: e.clientX - a.left, y: e.clientY - a.top },
-      n = this.unitAtPoint(i),
-      r = n
-        ? this.state.tiles.find((o) => sameHex(o, n.position))
-        : this.state.tiles.find((o) => this.pointInHex(i, this.hexCenter(o)));
-    t && r
-      ? this.onClick({ q: r.q, r: r.r })
-      : t || this.onHover(r ? { q: r.q, r: r.r } : null);
+    const t = this.pointerPoint(e);
+    if (this.drag && e.pointerId === this.drag.pointerId) {
+      const i = t.x - this.drag.start.x,
+        n = t.y - this.drag.start.y;
+      if (this.drag.moved || Math.hypot(i, n) > 4) {
+        ((this.drag.moved = !0), this.canvas.classList.add("panning"));
+        const r = this.clampPan(
+          { x: this.drag.panStart.x + i, y: this.drag.panStart.y + n },
+          this.zoomTarget,
+        );
+        // Dragging tracks the pointer directly — easing here would make the
+        // map lag behind the hand.
+        ((this.panTarget = r), (this.pan = { ...r }), this.applyCamera());
+        return;
+      }
+    }
+    const a = this.hexAtPoint(t),
+      i = a ? `${a.q},${a.r}` : "";
+    // Only report hover when the hex actually changes: re-running path
+    // preview and panel refreshes for every pixel of pointer travel is what
+    // made hovering feel jerky.
+    i !== this.lastHoverKey && ((this.lastHoverKey = i), this.onHover(a));
+  }
+  handlePointerUp(e) {
+    const t = this.drag;
+    ((this.drag = null), this.canvas.classList.remove("panning"));
+    if (!this.state || !t || e.pointerId !== t.pointerId) return;
+    if (t.moved) return;
+    const a = this.hexAtPoint(this.pointerPoint(e));
+    a && this.onClick(a);
   }
   unitAtPoint(e) {
     if (!this.state) return null;
@@ -290,6 +407,7 @@ export class BattleRenderer {
     requestAnimationFrame((t) => this.render(t));
   }
   drawFrame(e) {
+    this.advanceCamera(e);
     const t = this.context;
     (t.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0),
       t.clearRect(0, 0, this.width, this.height));
@@ -719,29 +837,15 @@ export class BattleRenderer {
       this.drawMoraleBadge(e),
       a.restore());
   }
-  portraitIndexForUnit(e) {
-    if (e.team === "company" && COMPANY_PORTRAIT_INDEX.has(e.name))
-      return COMPANY_PORTRAIT_INDEX.get(e.name);
-    const t = e.team === "enemy" ? e.id.match(/^e([1-6])$/) : null;
-    if (t) return Number(t[1]) - 1;
-    let a = 2166136261;
-    for (const i of `${e.id}|${e.name}`) {
-      ((a ^= i.charCodeAt(0)), (a = Math.imul(a, 16777619)));
-    }
-    return (a >>> 0) % 6;
-  }
   drawPortraitFigure(e) {
     const t = this.context,
-      a =
-        PORTRAIT_ATLASES[
-          e.team === "company" ? "company" : (e.portraitSet ?? "thorn-reavers")
-        ] ?? PORTRAIT_ATLASES["thorn-reavers"],
+      a = portraitAtlasPath(e),
       i = artImage(a);
     if (!i.complete || !i.naturalWidth) {
       this.drawFallbackPortrait(e);
       return;
     }
-    const n = this.portraitIndexForUnit(e),
+    const n = portraitIndexForUnit(e),
       r = i.naturalWidth / 3,
       o = i.naturalHeight / 2,
       l = (n % 3) * r,
