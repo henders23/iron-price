@@ -6,7 +6,9 @@
     "weapons": 12,
     "resources": 12,
     "emblems": 8,
-    "overlays": 8
+    "overlays": 8,
+    "terrain": 8,
+    "portraits": 4
   },
   "weaponTiers": ["worn", "serviceable", "masterwork"],
   "weapons": ["sword", "spear", "axe", "mace"],
@@ -43,5 +45,16 @@
     "active-turn",
     "movement-destination",
     "attack-target"
-  ]
+  ],
+  "terrain": [
+    "grass",
+    "forest",
+    "marsh",
+    "desert",
+    "mud",
+    "road",
+    "rock",
+    "water"
+  ],
+  "portraits": ["company", "thorn-reavers", "mireborn", "ironbound"]
 }

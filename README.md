@@ -82,9 +82,13 @@ new company; a running campaign then keeps its own copy.
 
 - Seven hand-authored 12x10 pointy-top battlefield layouts with terrain, elevation, blockers, movement costs, and defence modifiers.
 - Three enemy factions: balanced Thorn Reavers, fast Mireborn, and heavily armored Ironbound.
-- Layered grass, water, reeds, tree groves, roads, mud, rock, portrait fighters,
-  objective markers, impacts, casualties, and faction silhouettes rendered
-  directly in Canvas.
+- Eight seamless, realistic terrain textures for grass, woodland, marsh,
+  badlands, mud, roads, rock, and shallow water, clipped into exact hexes and
+  composited with interactive Canvas overlays.
+- Grassland, wetland, and badlands biome treatments across the seven authored
+  battlefields, plus large waist-up fighter markers with distinct company,
+  Thorn Reaver, Mireborn, and Ironbound faces. Live weapon and shield layers
+  always reflect the fighter's current equipment.
 - A scrollable battlefield with 100–250% zoom, centered zoom anchoring, and
   keyboard-accessible zoom controls. The board is measured from its own tiles,
   so every hex is on screen at 100% and scrolling only becomes necessary once
@@ -153,4 +157,8 @@ document. That is what lets the rules run under Node.
 - `assets/art/icons/resources`: armor, supplies, economy, progression, and injury icons.
 - `assets/art/emblems`: company, reputation, enemy-faction, and frontier-compact marks.
 - `assets/art/overlays`: deployment, movement, selection, activation, targeting, captain, hold, and escape markers used by the Canvas battle renderer.
+- `assets/art/terrain`: seamless WebP texture masters used to assemble the
+  grassland, wetland, and badlands tactical maps.
+- `assets/art/portraits`: transparent six-character atlases for the company and
+  all three enemy factions, composited with live equipment on the battlefield.
 - `assets/art/manifest.json`: canonical asset register.

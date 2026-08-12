@@ -1,4 +1,4 @@
-import { drawArt } from "../art/canvas-art.js";
+import { artImage, drawArt } from "../art/canvas-art.js";
 import { hexKey, sameHex, unitAt } from "../battle/hex.js";
 import { TERRAIN } from "../battle/weapons.js";
 import {
@@ -7,6 +7,41 @@ import {
   canvasBackingRatio,
 } from "./battle-layout.js";
 import { armorTint, drawPortraitMedallion, shiftColor } from "./portrait.js";
+
+const TERRAIN_TEXTURES = {
+  grass: "terrain/grass.webp",
+  forest: "terrain/forest.webp",
+  marsh: "terrain/marsh.webp",
+  desert: "terrain/desert.webp",
+  mud: "terrain/mud.webp",
+  road: "terrain/road.webp",
+  rock: "terrain/rock.webp",
+  water: "terrain/water.webp",
+};
+
+const PORTRAIT_ATLASES = {
+  company: "portraits/company.webp",
+  "thorn-reavers": "portraits/thorn-reavers.webp",
+  mireborn: "portraits/mireborn.webp",
+  ironbound: "portraits/ironbound.webp",
+};
+
+const EQUIPMENT_ART = {
+  shield: "icons/resources/shield.webp",
+  sword: "icons/weapons/sword-worn.webp",
+  spear: "icons/weapons/spear-worn.webp",
+  axe: "icons/weapons/axe-worn.webp",
+  mace: "icons/weapons/mace-worn.webp",
+};
+
+const COMPANY_PORTRAIT_INDEX = new Map([
+  ["Mara Venn", 0],
+  ["Osric Vale", 1],
+  ["Toman Rusk", 2],
+  ["Elia Fen", 3],
+  ["Bram Coal", 4],
+  ["Iven Pike", 5],
+]);
 
 export { SQRT3, shiftColor };
 export function easeInOutQuad(s) {
@@ -37,6 +72,7 @@ export class BattleRenderer {
   onHover;
   onClick;
   resizeObserver;
+  terrainPatterns = new Map();
   running = !0;
   reportedFrameError = !1;
   constructor(e, t, a) {
@@ -47,6 +83,11 @@ export class BattleRenderer {
       (this.onHover = t),
       (this.onClick = a),
       (this.resizeObserver = new ResizeObserver(() => this.resize())),
+      [
+        ...Object.values(TERRAIN_TEXTURES),
+        ...Object.values(PORTRAIT_ATLASES),
+        ...Object.values(EQUIPMENT_ART),
+      ].forEach((n) => artImage(n)),
       this.resizeObserver.observe(e),
       e.addEventListener("pointermove", (n) => this.handlePointer(n, !1)),
       e.addEventListener("pointerleave", () => this.onHover(null)),
@@ -183,10 +224,31 @@ export class BattleRenderer {
     if (!this.state) return;
     const a = this.canvas.getBoundingClientRect(),
       i = { x: e.clientX - a.left, y: e.clientY - a.top },
-      n = this.state.tiles.find((r) => this.pointInHex(i, this.hexCenter(r)));
-    t && n
-      ? this.onClick({ q: n.q, r: n.r })
-      : t || this.onHover(n ? { q: n.q, r: n.r } : null);
+      n = this.unitAtPoint(i),
+      r = n
+        ? this.state.tiles.find((o) => sameHex(o, n.position))
+        : this.state.tiles.find((o) => this.pointInHex(i, this.hexCenter(o)));
+    t && r
+      ? this.onClick({ q: r.q, r: r.r })
+      : t || this.onHover(r ? { q: r.q, r: r.r } : null);
+  }
+  unitAtPoint(e) {
+    if (!this.state) return null;
+    return (
+      [...this.state.units]
+        .filter((t) => t.alive && !t.routed)
+        .sort((t, a) => a.position.r - t.position.r || a.id.localeCompare(t.id))
+        .find((t) => {
+          const a = this.hexCenter(t.position),
+            i = e.x - a.x,
+            n = e.y - a.y;
+          return (
+            Math.abs(i) <= this.size * 0.79 &&
+            n >= -this.size * 1.05 &&
+            n <= this.size * 0.64
+          );
+        }) ?? null
+    );
   }
   pointInHex(e, t) {
     const a = Math.abs(e.x - t.x) / this.size,
@@ -275,11 +337,11 @@ export class BattleRenderer {
       (a.elevation > 0 &&
         (this.drawHex(
           { x: i.x + 2, y: i.y + this.size * 0.18 },
-          this.size * 0.98,
+          this.size * 1.01,
         ),
-        (t.fillStyle = "#34342d"),
+        (t.fillStyle = "rgba(13, 14, 12, .76)"),
         t.fill()),
-        this.drawHex(i, this.size * 0.96));
+        this.drawHex(i, this.size * 1.01));
       const r = t.createLinearGradient(
         i.x,
         i.y - this.size,
@@ -290,57 +352,12 @@ export class BattleRenderer {
         r.addColorStop(1, shiftColor(n.color, -14)),
         (t.fillStyle = r),
         t.fill(),
-        (t.strokeStyle = "rgba(11, 13, 13, .7)"),
-        (t.lineWidth = 1),
+        this.drawTerrainTexture(a, i),
+        this.drawTerrainDetails(a, i, e),
+        this.drawHex(i, this.size * 0.995),
+        (t.strokeStyle = "rgba(8, 10, 9, .28)"),
+        (t.lineWidth = Math.max(0.55, this.size * 0.012)),
         t.stroke());
-      const o = Math.abs(a.q * 31 + a.r * 17);
-      t.fillStyle = "rgba(230, 215, 180, .09)";
-      for (let c = 0; c < 3; c += 1) {
-        const m = (((o + c * 73) % 360) * Math.PI) / 180,
-          v = this.size * (0.18 + ((o + c * 11) % 42) / 100);
-        (t.beginPath(),
-          t.arc(
-            i.x + Math.cos(m) * v,
-            i.y + Math.sin(m) * v,
-            Math.max(0.7, this.size * 0.025),
-            0,
-            Math.PI * 2,
-          ),
-          t.fill());
-      }
-      if (a.terrain === "road")
-        ((t.strokeStyle = "rgba(43, 34, 25, .26)"),
-          (t.lineWidth = Math.max(1, this.size * 0.05)),
-          t.beginPath(),
-          t.moveTo(i.x - this.size * 0.5, i.y - this.size * 0.34),
-          t.lineTo(i.x + this.size * 0.55, i.y + this.size * 0.25),
-          t.stroke());
-      else if (a.terrain === "water") {
-        ((t.strokeStyle = "rgba(180, 210, 205, .2)"), (t.lineWidth = 1));
-        for (let c = -1; c <= 1; c += 1)
-          (t.beginPath(),
-            t.moveTo(i.x - this.size * 0.4, i.y + c * this.size * 0.25),
-            t.quadraticCurveTo(
-              i.x,
-              i.y + c * this.size * 0.25 + Math.sin(e * 0.002 + c) * 2,
-              i.x + this.size * 0.4,
-              i.y + c * this.size * 0.25,
-            ),
-            t.stroke());
-      } else
-        a.terrain === "rock" &&
-          ((t.fillStyle = "#353936"),
-          (t.strokeStyle = "#858477"),
-          (t.lineWidth = 1),
-          t.beginPath(),
-          t.moveTo(i.x - this.size * 0.45, i.y + this.size * 0.35),
-          t.lineTo(i.x - this.size * 0.25, i.y - this.size * 0.35),
-          t.lineTo(i.x + this.size * 0.32, i.y - this.size * 0.48),
-          t.lineTo(i.x + this.size * 0.48, i.y + this.size * 0.28),
-          t.closePath(),
-          t.fill(),
-          t.stroke());
-      this.drawTerrainDetails(a, i, e, o);
       const l = hexKey(a),
         d = a.q + Math.floor(a.r / 2);
       if (
@@ -421,201 +438,94 @@ export class BattleRenderer {
           )));
     }
   }
-  terrainRandom(e, t = 0) {
-    let a = Math.imul(e.q + 131 + t * 17, 374761393);
-    return (
-      (a = Math.imul(a ^ (e.r + 197 + t * 31), 668265263)),
-      (a = (a ^ (a >>> 13)) >>> 0),
-      a / 4294967295
+  textureForTerrain(e) {
+    if (e.terrain === "brush") return TERRAIN_TEXTURES.forest;
+    if (e.terrain === "mud")
+      return e.biome === "wetland"
+        ? TERRAIN_TEXTURES.marsh
+        : TERRAIN_TEXTURES.mud;
+    if (e.terrain === "grass" || e.terrain === "hill")
+      return e.biome === "badlands"
+        ? TERRAIN_TEXTURES.desert
+        : TERRAIN_TEXTURES.grass;
+    return TERRAIN_TEXTURES[e.terrain] ?? TERRAIN_TEXTURES.grass;
+  }
+  patternForTerrain(e) {
+    const t = this.textureForTerrain(e);
+    if (this.terrainPatterns.has(t)) return this.terrainPatterns.get(t);
+    const a = artImage(t);
+    if (!a.complete || !a.naturalWidth) return null;
+    const i = this.context.createPattern(a, "repeat");
+    return (i && this.terrainPatterns.set(t, i), i);
+  }
+  drawTerrainTexture(e, t) {
+    const a = this.context,
+      i = this.patternForTerrain(e);
+    if (!i) return;
+    const n = Math.max(0.38, this.size / 105);
+    (i.setTransform(new DOMMatrix().scale(n)),
+      a.save(),
+      this.drawHex(t, this.size * 1.012),
+      a.clip(),
+      (a.fillStyle = i),
+      a.fillRect(
+        t.x - this.size * 1.1,
+        t.y - this.size * 1.1,
+        this.size * 2.2,
+        this.size * 2.2,
+      ));
+    const r = a.createLinearGradient(
+      t.x - this.size * 0.45,
+      t.y - this.size,
+      t.x + this.size * 0.4,
+      t.y + this.size,
     );
-  }
-  drawTerrainDetails(e, t, a, i) {
-    const n = this.context,
-      r = this.size;
-    if (e.terrain === "grass" || e.terrain === "hill") {
-      (n.save(),
-        (n.lineCap = "round"),
-        (n.lineWidth = Math.max(0.7, r * 0.018)));
-      for (let o = 0; o < 10; o += 1) {
-        const l = this.terrainRandom(e, o + 4),
-          d = this.terrainRandom(e, o + 42),
-          c = (l * Math.PI * 2 + o) % (Math.PI * 2),
-          m = r * (0.12 + d * 0.47),
-          v = t.x + Math.cos(c) * m,
-          b = t.y + Math.sin(c) * m * 0.72,
-          f = r * (0.07 + this.terrainRandom(e, o + 81) * 0.08);
-        ((n.strokeStyle =
-          o % 3 === 0 ? "rgba(202, 190, 121, .38)" : "rgba(30, 53, 30, .48)"),
-          n.beginPath(),
-          n.moveTo(v, b + f * 0.45),
-          n.quadraticCurveTo(v - f * 0.22, b, v - f * 0.08, b - f),
-          n.moveTo(v, b + f * 0.45),
-          n.quadraticCurveTo(v + f * 0.3, b, v + f * 0.55, b - f * 0.65),
-          n.stroke());
-      }
-      (n.restore(),
-        e.terrain === "hill" &&
-          (n.save(),
-          (n.strokeStyle = "rgba(50, 46, 29, .28)"),
-          (n.lineWidth = Math.max(1, r * 0.025)),
-          n.beginPath(),
-          n.arc(t.x, t.y + r * 0.15, r * 0.56, Math.PI * 1.08, Math.PI * 1.92),
-          n.stroke(),
-          n.restore()));
-      return;
-    }
-    if (e.terrain === "brush") {
-      for (let o = 0; o < 3; o += 1) {
-        const l = this.terrainRandom(e, o + 5),
-          d = this.terrainRandom(e, o + 27),
-          c = t.x + (l - 0.5) * r * 0.86,
-          m = t.y + (d - 0.5) * r * 0.62 + r * 0.06;
-        this.drawTree(
-          c,
-          m,
-          r * (0.24 + this.terrainRandom(e, o + 63) * 0.08),
-          o + i,
-        );
-      }
-      return;
-    }
-    if (e.terrain === "water") {
-      (n.save(),
-        (n.lineCap = "round"),
-        (n.lineWidth = Math.max(0.8, r * 0.025)));
-      for (let o = 0; o < 5; o += 1) {
-        const l = this.terrainRandom(e, o + 13),
-          d = this.terrainRandom(e, o + 39),
-          c = t.x + (l - 0.5) * r * 0.9,
-          m = t.y + (d - 0.5) * r * 0.96,
-          v = r * (0.08 + this.terrainRandom(e, o + 72) * 0.12),
-          b = Math.sin(a * 0.0025 + o + i * 0.02) * r * 0.025;
-        ((n.strokeStyle =
-          o % 2 ? "rgba(191, 224, 219, .28)" : "rgba(19, 45, 48, .46)"),
-          n.beginPath(),
-          n.moveTo(c - v, m + b),
-          n.quadraticCurveTo(c, m - r * 0.035 + b, c + v, m + b),
-          n.stroke());
-      }
-      for (let o = 0; o < 2; o += 1) {
-        const l = o ? 0.34 : -0.36,
-          d = t.x + r * l,
-          c = t.y + r * (o ? 0.38 : -0.34);
-        ((n.strokeStyle = "rgba(93, 106, 60, .72)"),
-          (n.lineWidth = Math.max(1, r * 0.025)),
-          n.beginPath(),
-          n.moveTo(d, c + r * 0.1),
-          n.lineTo(d - r * 0.02, c - r * 0.12),
-          n.moveTo(d + r * 0.04, c + r * 0.1),
-          n.lineTo(d + r * 0.08, c - r * 0.09),
-          n.stroke());
-      }
-      n.restore();
-      return;
-    }
-    if (e.terrain === "road") {
-      (n.save(),
-        (n.strokeStyle = "rgba(42, 31, 22, .35)"),
-        (n.lineWidth = Math.max(1, r * 0.045)),
-        (n.lineCap = "round"));
-      for (const o of [-0.18, 0.18]) {
-        (n.beginPath(),
-          n.moveTo(t.x - r * 0.48, t.y - r * (0.28 - o)),
-          n.quadraticCurveTo(
-            t.x,
-            t.y + r * o,
-            t.x + r * 0.5,
-            t.y + r * (0.28 + o),
-          ),
-          n.stroke());
-      }
-      n.restore();
-      return;
-    }
-    if (e.terrain === "mud") {
-      (n.save(), (n.fillStyle = "rgba(25, 26, 22, .34)"));
-      for (let o = 0; o < 4; o += 1) {
-        const l = t.x + (this.terrainRandom(e, o + 8) - 0.5) * r * 0.85,
-          d = t.y + (this.terrainRandom(e, o + 55) - 0.5) * r * 0.75;
-        (n.beginPath(),
-          n.ellipse(
-            l,
-            d,
-            r * (0.08 + o * 0.015),
-            r * 0.045,
-            0.3,
-            0,
-            Math.PI * 2,
-          ),
-          n.fill());
-      }
-      n.restore();
-      return;
-    }
-    if (e.terrain === "rock") {
-      (n.save(),
-        (n.strokeStyle = "rgba(202, 202, 181, .34)"),
-        (n.lineWidth = Math.max(0.8, r * 0.02)),
-        n.beginPath(),
-        n.moveTo(t.x - r * 0.22, t.y - r * 0.25),
-        n.lineTo(t.x - r * 0.05, t.y - r * 0.04),
-        n.lineTo(t.x + r * 0.14, t.y - r * 0.13),
-        n.moveTo(t.x - r * 0.05, t.y - r * 0.04),
-        n.lineTo(t.x + r * 0.08, t.y + r * 0.27),
-        n.stroke(),
-        n.restore());
-    }
-  }
-  drawTree(e, t, a, i) {
-    const n = this.context,
-      r = i % 2 === 0;
-    (n.save(),
-      (n.fillStyle = "rgba(6, 12, 8, .36)"),
-      n.beginPath(),
-      n.ellipse(
-        e + a * 0.08,
-        t + a * 0.62,
-        a * 0.82,
-        a * 0.28,
-        0,
-        0,
-        Math.PI * 2,
+    (r.addColorStop(
+      0,
+      e.elevation ? "rgba(244, 225, 171, .13)" : "rgba(244, 225, 171, .05)",
+    ),
+      r.addColorStop(0.58, "rgba(14, 17, 15, 0)"),
+      r.addColorStop(1, "rgba(7, 9, 8, .2)"),
+      (a.fillStyle = r),
+      a.fillRect(
+        t.x - this.size * 1.1,
+        t.y - this.size * 1.1,
+        this.size * 2.2,
+        this.size * 2.2,
       ),
-      n.fill(),
-      (n.strokeStyle = r ? "#4a3925" : "#3d3323"),
-      (n.lineWidth = Math.max(1.3, a * 0.16)),
-      (n.lineCap = "round"),
-      n.beginPath(),
-      n.moveTo(e, t + a * 0.5),
-      n.lineTo(e, t - a * 0.28),
-      n.moveTo(e, t - a * 0.08),
-      n.lineTo(e - a * 0.36, t - a * 0.42),
-      n.moveTo(e, t - a * 0.16),
-      n.lineTo(e + a * 0.36, t - a * 0.52),
-      n.stroke());
-    const o = n.createRadialGradient(
-      e - a * 0.2,
-      t - a * 0.62,
-      a * 0.08,
-      e,
-      t - a * 0.42,
-      a,
-    );
-    (o.addColorStop(0, r ? "#829062" : "#707e56"),
-      o.addColorStop(0.45, r ? "#52633f" : "#48593b"),
-      o.addColorStop(1, "#263326"),
-      (n.fillStyle = o));
-    for (const [l, d, c] of [
-      [-0.38, -0.42, 0.58],
-      [0.34, -0.5, 0.62],
-      [0, -0.78, 0.72],
-      [0.02, -0.25, 0.72],
-    ]) {
-      (n.beginPath(),
-        n.arc(e + a * l, t + a * d, a * c, 0, Math.PI * 2),
-        n.fill());
+      a.restore());
+  }
+  drawTerrainDetails(e, t, a) {
+    const i = this.context,
+      n = this.size;
+    if (e.terrain === "water") {
+      (i.save(),
+        (i.strokeStyle = "rgba(210, 230, 221, .2)"),
+        (i.lineWidth = Math.max(0.7, n * 0.017)),
+        (i.lineCap = "round"));
+      for (let r = -1; r <= 1; r += 1) {
+        const o = Math.sin(a * 0.0023 + r * 2.1) * n * 0.035;
+        (i.beginPath(),
+          i.moveTo(t.x - n * 0.34, t.y + r * n * 0.24 + o),
+          i.quadraticCurveTo(
+            t.x,
+            t.y + r * n * 0.24 - n * 0.035 + o,
+            t.x + n * 0.34,
+            t.y + r * n * 0.24 + o,
+          ),
+          i.stroke());
+      }
+      i.restore();
     }
-    n.restore();
+    if (e.terrain === "hill") {
+      (i.save(),
+        (i.strokeStyle = "rgba(246, 226, 171, .18)"),
+        (i.lineWidth = Math.max(0.8, n * 0.018)),
+        i.beginPath(),
+        i.arc(t.x, t.y + n * 0.14, n * 0.56, Math.PI * 1.08, Math.PI * 1.92),
+        i.stroke(),
+        i.restore());
+    }
   }
   drawPath() {
     if (this.view.path.length < 2) return;
@@ -708,47 +618,46 @@ export class BattleRenderer {
   drawUnit(e, t) {
     const a = this.context,
       i = this.animatedCenter(e, t),
-      n = this.size / 42,
-      r =
+      n =
         e.id === this.view.selectedUnitId || e.id === this.view.inspectedUnitId,
-      o = this.state?.queue[0] === e.id,
-      l = e.id === this.view.targetId,
-      d =
+      r = this.state?.queue[0] === e.id,
+      o = e.id === this.view.targetId,
+      l =
         this.state?.objective?.type === "break-captain" &&
         this.state.objective.captainId === e.id,
-      c = o
+      d = r
         ? Math.sin(t * 0.004) * 1.2
         : Math.sin(t * 0.002 + e.id.charCodeAt(1)) * 0.7;
     (a.save(),
-      a.translate(i.x, i.y + c),
+      a.translate(i.x, i.y + d),
       (a.fillStyle = "rgba(0, 0, 0, .44)"),
       a.beginPath(),
       a.ellipse(
         0,
-        this.size * 0.48,
-        this.size * 0.55,
-        this.size * 0.2,
+        this.size * 0.51,
+        this.size * 0.68,
+        this.size * 0.18,
         0,
         0,
         Math.PI * 2,
       ),
       a.fill(),
-      (r || o || l) &&
-        ((a.strokeStyle = l ? "#df675a" : o ? "#f0cd73" : "#b8d6d5"),
-        (a.lineWidth = o ? 3 : 2),
+      (n || r || o) &&
+        ((a.strokeStyle = o ? "#df675a" : r ? "#f0cd73" : "#b8d6d5"),
+        (a.lineWidth = r ? 3 : 2),
         a.beginPath(),
         a.ellipse(
           0,
-          this.size * 0.42,
-          this.size * 0.56,
-          this.size * 0.25,
+          this.size * 0.47,
+          this.size * 0.67,
+          this.size * 0.23,
           0,
           0,
           Math.PI * 2,
         ),
         a.stroke()),
-      r &&
-        !o &&
+      n &&
+        !r &&
         drawArt(
           a,
           "overlays/selected-unit.webp",
@@ -758,7 +667,7 @@ export class BattleRenderer {
           this.size * 1.6,
           0.9,
         ),
-      o &&
+      r &&
         drawArt(
           a,
           "overlays/active-turn.webp",
@@ -768,7 +677,7 @@ export class BattleRenderer {
           this.size * 1.68,
           0.94,
         ),
-      l &&
+      o &&
         drawArt(
           a,
           "overlays/attack-target.webp",
@@ -778,12 +687,20 @@ export class BattleRenderer {
           this.size * 1.64,
           0.92,
         ),
-      d &&
+      l &&
         ((a.strokeStyle = "#e5bd58"),
         (a.lineWidth = 2.5),
         a.setLineDash([5, 3]),
         a.beginPath(),
-        a.arc(0, 0, this.size * 0.72, 0, Math.PI * 2),
+        a.ellipse(
+          0,
+          -this.size * 0.1,
+          this.size * 0.75,
+          this.size * 0.92,
+          0,
+          0,
+          Math.PI * 2,
+        ),
         a.stroke(),
         a.setLineDash([]),
         drawArt(
@@ -795,35 +712,155 @@ export class BattleRenderer {
           this.size * 1.84,
           0.9,
         )));
-    const m = e.team === "company" ? 1 : -1,
-      v = armorTint(e),
-      b = e.bodyArmorMax > 0 ? e.bodyArmor / e.bodyArmorMax : 0;
-    this.drawPortraitToken(e, m, n, v, b);
-    const u = 37 * n,
-      p = (g, T, x) => {
-        ((a.fillStyle = "rgba(8, 10, 10, .82)"),
-          a.fillRect(-u / 2 - 1, g - 1, u + 2, 4 * n + 2),
-          (a.fillStyle = x),
-          a.fillRect(-u / 2, g, u * Math.max(0, T), 4 * n));
-      };
-    (p(-40 * n, e.hp / e.hpMax, "#9d3f36"),
-      p(
-        -35 * n,
-        (e.headArmor + e.bodyArmor) / (e.headArmorMax + e.bodyArmorMax),
-        "#94a4a8",
-      ),
-      (a.font = `600 ${Math.max(9, 9.5 * n)}px Georgia, serif`),
-      (a.textAlign = "center"),
-      (a.textBaseline = "top"),
-      (a.fillStyle = "rgba(8, 10, 10, .82)"),
-      a.fillText(e.name.split(" ")[0], 1, 41 * n + 1),
-      (a.fillStyle = "#e5ddca"),
-      a.fillText(e.name.split(" ")[0], 0, 41 * n),
-      e.morale !== "steady" &&
-        ((a.fillStyle = e.morale === "confident" ? "#c4aa5f" : "#d66a5d"),
-        (a.font = `bold ${10 * n}px sans-serif`),
-        a.fillText(e.morale === "confident" ? "▲" : "▼", 18 * n, -39 * n)),
+    const c = e.team === "company" ? 1 : -1;
+    (this.drawPortraitFigure(e),
+      this.drawUnitEquipment(e, c),
+      this.drawStatusPlinth(e),
+      this.drawMoraleBadge(e),
       a.restore());
+  }
+  portraitIndexForUnit(e) {
+    if (e.team === "company" && COMPANY_PORTRAIT_INDEX.has(e.name))
+      return COMPANY_PORTRAIT_INDEX.get(e.name);
+    const t = e.team === "enemy" ? e.id.match(/^e([1-6])$/) : null;
+    if (t) return Number(t[1]) - 1;
+    let a = 2166136261;
+    for (const i of `${e.id}|${e.name}`) {
+      ((a ^= i.charCodeAt(0)), (a = Math.imul(a, 16777619)));
+    }
+    return (a >>> 0) % 6;
+  }
+  drawPortraitFigure(e) {
+    const t = this.context,
+      a =
+        PORTRAIT_ATLASES[
+          e.team === "company" ? "company" : (e.portraitSet ?? "thorn-reavers")
+        ] ?? PORTRAIT_ATLASES["thorn-reavers"],
+      i = artImage(a);
+    if (!i.complete || !i.naturalWidth) {
+      this.drawFallbackPortrait(e);
+      return;
+    }
+    const n = this.portraitIndexForUnit(e),
+      r = i.naturalWidth / 3,
+      o = i.naturalHeight / 2,
+      l = (n % 3) * r,
+      d = Math.floor(n / 3) * o,
+      c = this.size * 1.58;
+    (t.save(),
+      (t.shadowColor = "rgba(0, 0, 0, .72)"),
+      (t.shadowBlur = this.size * 0.1),
+      (t.shadowOffsetY = this.size * 0.07),
+      t.drawImage(i, l, d, r, o, -c / 2, -this.size * 1.02, c, c),
+      t.restore());
+  }
+  drawFallbackPortrait(e) {
+    const t = this.context,
+      a = e.team === "company" ? "#567984" : "#813f38";
+    ((t.fillStyle = "rgba(13, 16, 16, .94)"),
+      (t.strokeStyle = a),
+      (t.lineWidth = Math.max(2, this.size * 0.06)),
+      t.beginPath(),
+      t.arc(0, -this.size * 0.2, this.size * 0.48, 0, Math.PI * 2),
+      t.fill(),
+      t.stroke(),
+      (t.fillStyle = "#e6dcc4"),
+      (t.font = `700 ${this.size * 0.52}px Georgia, serif`),
+      (t.textAlign = "center"),
+      (t.textBaseline = "middle"),
+      t.fillText(e.name.charAt(0), 0, -this.size * 0.18));
+  }
+  drawEquipmentSprite(e, t, a, i, n = 0, r = !1, o = 1) {
+    const l = this.context,
+      d = artImage(e);
+    if (!d.complete || !d.naturalWidth) return;
+    (l.save(),
+      l.translate(t, a),
+      l.rotate(n),
+      l.scale(r ? -1 : 1, 1),
+      (l.globalAlpha *= o),
+      (l.shadowColor = "rgba(0, 0, 0, .78)"),
+      (l.shadowBlur = this.size * 0.07),
+      (l.shadowOffsetY = this.size * 0.05),
+      l.drawImage(d, -i / 2, -i / 2, i, i),
+      l.restore());
+  }
+  drawUnitEquipment(e, t) {
+    const a = this.size;
+    (e.hasShield &&
+      this.drawEquipmentSprite(
+        EQUIPMENT_ART.shield,
+        -t * a * 0.44,
+        a * 0.1,
+        a * 0.8,
+        -t * 0.08,
+        t < 0,
+        0.98,
+      ),
+      this.drawEquipmentSprite(
+        EQUIPMENT_ART[e.weaponId] ?? EQUIPMENT_ART.sword,
+        t * a * 0.47,
+        -a * 0.13,
+        a * 0.94,
+        t * 0.12,
+        t < 0,
+      ));
+  }
+  drawStatusPlinth(e) {
+    const t = this.context,
+      a = this.size,
+      i = a * 1.08,
+      n = a * 0.34,
+      r = -i / 2,
+      o = a * 0.4,
+      l = e.team === "company" ? "#6f9aa2" : "#a35a50",
+      d = Math.max(0, e.hp / e.hpMax),
+      c = Math.max(
+        0,
+        (e.headArmor + e.bodyArmor) / (e.headArmorMax + e.bodyArmorMax),
+      );
+    (t.save(),
+      (t.fillStyle = "rgba(9, 12, 12, .94)"),
+      (t.strokeStyle = l),
+      (t.lineWidth = Math.max(1, a * 0.025)),
+      t.beginPath(),
+      t.roundRect(r, o, i, n, a * 0.08),
+      t.fill(),
+      t.stroke());
+    const m = (v, b, f) => {
+      ((t.fillStyle = "rgba(0, 0, 0, .8)"),
+        t.fillRect(-a * 0.44, v, a * 0.88, a * 0.055),
+        (t.fillStyle = f),
+        t.fillRect(-a * 0.44, v, a * 0.88 * b, a * 0.055));
+    };
+    (m(a * 0.45, d, "#ae473d"),
+      m(a * 0.53, c, "#aebcc0"),
+      (t.fillStyle = "#eee4cc"),
+      (t.font = `600 ${Math.max(8, a * 0.17)}px Georgia, serif`),
+      (t.textAlign = "center"),
+      (t.textBaseline = "middle"),
+      t.fillText(e.name.split(" ")[0], 0, a * 0.66, a * 0.94),
+      t.restore());
+  }
+  drawMoraleBadge(e) {
+    if (e.morale === "steady") return;
+    const t = this.context,
+      a = this.size,
+      i = e.morale === "confident";
+    (t.save(),
+      (t.fillStyle = "rgba(9, 12, 12, .94)"),
+      (t.strokeStyle = i ? "#c8ad61" : "#d66a5d"),
+      (t.lineWidth = Math.max(1.2, a * 0.03)),
+      t.beginPath(),
+      t.arc(a * 0.54, -a * 0.67, a * 0.13, 0, Math.PI * 2),
+      t.fill(),
+      t.stroke(),
+      (t.fillStyle = i ? "#ead58e" : "#ff9d8d"),
+      (t.font = `bold ${a * 0.18}px sans-serif`),
+      (t.textAlign = "center"),
+      (t.textBaseline = "middle"),
+      t.fillText(i ? "▲" : "▼", a * 0.54, -a * 0.66),
+      t.restore());
   }
   drawPortraitToken(e, t, a, i, n) {
     const r = this.context;
@@ -954,7 +991,7 @@ export class BattleRenderer {
         (t.textAlign = "center"),
         (t.lineWidth = 3),
         (t.strokeStyle = "rgba(15, 17, 17, .9)"));
-      const o = r.y - this.size * 1.05 - n * this.size * 0.55 - a.offset;
+      const o = r.y - this.size * 1.22 - n * this.size * 0.55 - a.offset;
       (t.strokeText(a.text, r.x, o),
         (t.fillStyle = a.color),
         t.fillText(a.text, r.x, o),

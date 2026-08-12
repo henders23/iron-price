@@ -19,6 +19,7 @@ export function createBattleState(s = 439041101, e = {}) {
     const c = ENEMY_FACTIONS[n][l];
     ((d.name = c.name),
       (d.epithet = c.epithet),
+      (d.portraitSet = n),
       (d.weaponId = c.weaponId ?? d.weaponId),
       (d.hasShield = c.hasShield ?? d.hasShield));
     const m = n === "ironbound" ? 1.12 : n === "mireborn" ? 0.88 : 1,

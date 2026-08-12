@@ -39,6 +39,8 @@ const artFiles = [
   ...manifest.resources.map((name) => `icons/resources/${name}.webp`),
   ...manifest.emblems.map((name) => `emblems/${name}.webp`),
   ...manifest.overlays.map((name) => `overlays/${name}.webp`),
+  ...manifest.terrain.map((name) => `terrain/${name}.webp`),
+  ...manifest.portraits.map((name) => `portraits/${name}.webp`),
 ];
 const expectedArtCount = Object.values(manifest.counts).reduce(
   (total, count) => total + count,
@@ -110,6 +112,22 @@ for (const overlay of manifest.overlays) {
   if (!battleRenderer.includes(`overlays/${overlay}.webp`)) {
     throw new Error(
       `The battle renderer does not reference overlay ${overlay}.`,
+    );
+  }
+}
+
+for (const terrain of manifest.terrain) {
+  if (!battleRenderer.includes(`terrain/${terrain}.webp`)) {
+    throw new Error(
+      `The battle renderer does not reference terrain ${terrain}.`,
+    );
+  }
+}
+
+for (const portrait of manifest.portraits) {
+  if (!battleRenderer.includes(`portraits/${portrait}.webp`)) {
+    throw new Error(
+      `The battle renderer does not reference portrait set ${portrait}.`,
     );
   }
 }

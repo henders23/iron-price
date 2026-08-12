@@ -290,6 +290,8 @@ export function createUnit(s) {
     team: s.team,
     name: s.name,
     epithet: s.epithet,
+    portraitSet:
+      s.portraitSet ?? (s.team === "company" ? "company" : "thorn-reavers"),
     weaponId: s.weaponId,
     hasShield: s.hasShield,
     position: offsetToAxial(s.column, s.row),

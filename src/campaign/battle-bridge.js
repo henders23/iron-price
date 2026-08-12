@@ -14,6 +14,7 @@ export function toBattleUnit(s, e) {
     team: "company",
     name: s.name,
     epithet: s.epithet,
+    portraitSet: "company",
     weaponId: s.weaponId,
     hasShield: s.hasShield,
     position: { ...e.position },

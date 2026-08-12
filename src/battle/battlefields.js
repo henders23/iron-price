@@ -1,5 +1,12 @@
 import { offsetToAxial } from "./hex.js";
 
+export function biomeFor(s) {
+  if (s === "fen-crossing" || s === "blackbriar") return "wetland";
+  if (s === "cinder-streets" || s === "quarry-pit" || s === "iron-pass")
+    return "badlands";
+  return "grassland";
+}
+
 export function terrainFor(s, e, t) {
   const a = `${s},${e}`,
     n = {
@@ -133,11 +140,12 @@ export function terrainFor(s, e, t) {
               : { terrain: "grass", elevation: 0 };
 }
 export function buildBattlefield(s) {
-  const e = [];
-  for (let t = 0; t < 10; t += 1)
-    for (let a = 0; a < 12; a += 1) {
-      const i = offsetToAxial(a, t);
-      e.push({ ...i, ...terrainFor(a, t, s) });
+  const e = [],
+    t = biomeFor(s);
+  for (let a = 0; a < 10; a += 1)
+    for (let i = 0; i < 12; i += 1) {
+      const n = offsetToAxial(i, a);
+      e.push({ ...n, biome: t, ...terrainFor(i, a, s) });
     }
   return e;
 }
